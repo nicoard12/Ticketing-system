@@ -7,3 +7,11 @@
   "ubicacion": "Estadio Único de La Plata",
   "imagenUrl": "https://ejemplo.com/festival.jpg"
 }
+
+{
+  "nombre": "Nicolas",
+  "apellido": "Arditi",
+  "email": "nicoarditi12@gmail.com",
+  "password": "contrasenia123",
+  "rol": "productor",
+}

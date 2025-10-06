@@ -1,5 +1,13 @@
-import { Type } from "class-transformer";
-import { IsString, IsNotEmpty, IsNumber, Min, IsUrl, ArrayMinSize, IsDate } from "class-validator";
+import { Type } from 'class-transformer';
+import {
+  IsString,
+  IsNotEmpty,
+  IsNumber,
+  Min,
+  IsUrl,
+  ArrayMinSize,
+  IsDate,
+} from 'class-validator';
 
 export class CreateEventoDto {
   @IsString()
@@ -7,9 +15,9 @@ export class CreateEventoDto {
   titulo: string;
 
   @IsDate({ each: true })
-  @ArrayMinSize(1)    
-  @Type(() => Date) 
-  fechas: Date[]; 
+  @ArrayMinSize(1)
+  @Type(() => Date)
+  fechas: Date[];
 
   @IsString()
   @IsNotEmpty()

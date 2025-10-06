@@ -8,10 +8,10 @@ const FechaSchema = new mongoose.Schema({
 
 export const EventoSchema = new mongoose.Schema({
   titulo: { type: String, unique: true },
-  fechas: [FechaSchema] ,
+  fechas: [FechaSchema],
   descripcion: String,
   cantidadEntradas: Number,
   precioEntrada: Number,
   ubicacion: String,
-  imagenUrl: String
+  imagenUrl: String,
 });
