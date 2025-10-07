@@ -1,5 +1,5 @@
 import { Model } from 'mongoose';
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable, Inject, NotFoundException } from '@nestjs/common';
 import { Evento } from '../interfaces/evento.interface';
 import { CreateEventoDto } from './dto/create-evento.dto';
 import { UpdateEventoDto } from './dto/update-evento.dto';
@@ -32,5 +32,31 @@ export class EventosService {
 
   async findAll(): Promise<Evento[]> {
     return this.eventoModel.find().exec();
+  }
+
+  async findOne(id: string): Promise<Evento> {
+    const evento = await this.eventoModel.findById(id).exec();
+    if (!evento) {
+      throw new NotFoundException(`Evento con id ${id} no encontrado`);
+    }
+    return evento;
+  }
+
+  async update(id: string, updateEventoDto: UpdateEventoDto): Promise<Evento> {
+    const eventoActualizado = await this.eventoModel
+      .findByIdAndUpdate(id, updateEventoDto, { new: true })
+      .exec();
+    if (!eventoActualizado) {
+      throw new NotFoundException(`Evento con id ${id} no encontrado`);
+    }
+    return eventoActualizado;
+  }
+
+  async remove(id: string): Promise<Evento> {
+    const eventoEliminado = await this.eventoModel.findByIdAndDelete(id).exec();
+    if (!eventoEliminado) {
+      throw new NotFoundException(`Evento con id ${id} no encontrado`);
+    }
+    return eventoEliminado;
   }
 }

@@ -3,6 +3,9 @@ import {
   Get,
   Post,
   Body,
+  Patch,
+  Param,
+  Delete,
   UsePipes,
   ValidationPipe,
 } from '@nestjs/common';
@@ -25,4 +28,18 @@ export class EventosController {
     return this.eventosService.findAll();
   }
 
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    return this.eventosService.findOne(id);
+  }
+
+  @Patch(':id')
+  update(@Param('id') id: string, @Body() updateEventoDto: UpdateEventoDto) {
+    return this.eventosService.update(id, updateEventoDto);
+  }
+
+  @Delete(':id')
+  remove(@Param('id') id: string) {
+    return this.eventosService.remove(id);
+  }
 }
