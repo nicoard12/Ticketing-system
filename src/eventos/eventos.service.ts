@@ -43,8 +43,24 @@ export class EventosService {
   }
 
   async update(id: string, updateEventoDto: UpdateEventoDto): Promise<Evento> {
+    console.log('Aca tambien llega,', updateEventoDto);
+    const { titulo, fechas, cantidadEntradas, ...rest } = updateEventoDto;
+
+    const fechasConTickets = fechas?.map((f) => ({
+      titulo: titulo,
+      fecha: f,
+      ticketsDisponibles: cantidadEntradas,
+    }));
+
+    const createdEvento = new this.eventoModel({
+      titulo,
+      cantidadEntradas,
+      ...rest,
+      fechas: fechasConTickets,
+    });
+
     const eventoActualizado = await this.eventoModel
-      .findByIdAndUpdate(id, updateEventoDto, { new: true })
+      .findByIdAndUpdate(id, createdEvento, { new: true })
       .exec();
     if (!eventoActualizado) {
       throw new NotFoundException(`Evento con id ${id} no encontrado`);

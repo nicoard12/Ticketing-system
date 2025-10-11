@@ -8,6 +8,7 @@ import {
   Delete,
   UsePipes,
   ValidationPipe,
+  Put,
 } from '@nestjs/common';
 import { EventosService } from './eventos.service';
 import { CreateEventoDto } from './dto/create-evento.dto';
@@ -33,8 +34,9 @@ export class EventosController {
     return this.eventosService.findOne(id);
   }
 
-  @Patch(':id')
+  @Put(':id')
   update(@Param('id') id: string, @Body() updateEventoDto: UpdateEventoDto) {
+    console.log('Llega esto,', updateEventoDto);
     return this.eventosService.update(id, updateEventoDto);
   }
 

@@ -7,11 +7,13 @@ import {
   IsUrl,
   ArrayMinSize,
   IsDate,
+  MaxLength,
 } from 'class-validator';
 
 export class CreateEventoDto {
   @IsString()
   @IsNotEmpty()
+  @MaxLength(40)
   titulo: string;
 
   @IsDate({ each: true })
@@ -21,6 +23,7 @@ export class CreateEventoDto {
 
   @IsString()
   @IsNotEmpty()
+  @MaxLength(300)
   descripcion: string;
 
   @IsNumber()
