@@ -1,17 +1,18 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import 'dotenv/config';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // 🟢 Habilitar CORS para permitir requests desde el frontend
+  //Habilitar CORS para permitir requests desde el frontend
   app.enableCors({
     origin: 'http://localhost:5173',
     credentials: true,
   });
 
-  // 📄 Configuración de Swagger (OpenAPI)
+  // Configuración de Swagger (OpenAPI)
   const config = new DocumentBuilder()
     .setTitle('API Ticketing System')
     .setDescription('API description')
