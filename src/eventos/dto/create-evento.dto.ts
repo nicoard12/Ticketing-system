@@ -8,6 +8,7 @@ import {
   ArrayMinSize,
   IsDate,
   MaxLength,
+  IsOptional,
 } from 'class-validator';
 
 export class CreateEventoDto {
@@ -16,31 +17,31 @@ export class CreateEventoDto {
   @MaxLength(40)
   titulo: string;
 
-  @IsDate({ each: true })
-  @ArrayMinSize(1)
-  @Type(() => Date)
-  fechas: Date[];
+  @IsString()
+  @IsNotEmpty()
+  fechas: string; //en realidad es Date[] pero lo mando en formData asi que es necesario string
 
   @IsString()
   @IsNotEmpty()
-  @MaxLength(300)
+  @MaxLength(500)
   descripcion: string;
 
-  @IsNumber()
+  @Type(() => Number)
   @IsNotEmpty()
-  @Min(1)
+  @Min(1, { message: 'La cantidad de entradas debe ser mayor a 0' })
   cantidadEntradas: number;
 
-  @IsNumber()
+  @Type(() => Number)
   @IsNotEmpty()
-  @Min(0)
+  @Min(0.01, { message: 'El precio de la entrada debe ser mayor a 0' })
   precioEntrada: number;
 
   @IsString()
   @IsNotEmpty()
   ubicacion: string;
 
+  @IsString()
   @IsUrl()
-  @IsNotEmpty()
+  @IsOptional()
   imagenUrl: string;
 }

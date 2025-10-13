@@ -9,10 +9,15 @@ import {
   UsePipes,
   ValidationPipe,
   Put,
+  UseInterceptors,
+  UploadedFile,
+  BadRequestException,
 } from '@nestjs/common';
 import { EventosService } from './eventos.service';
 import { CreateEventoDto } from './dto/create-evento.dto';
 import { UpdateEventoDto } from './dto/update-evento.dto';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { memoryStorage } from 'multer';
 
 @Controller('eventos')
 @UsePipes(new ValidationPipe())
@@ -20,8 +25,15 @@ export class EventosController {
   constructor(private readonly eventosService: EventosService) {}
 
   @Post()
-  create(@Body() createEventoDto: CreateEventoDto) {
-    return this.eventosService.create(createEventoDto);
+  @UseInterceptors(FileInterceptor('imagen', { storage: memoryStorage() }))
+  create(
+    @Body() createEventoDto: CreateEventoDto,
+    @UploadedFile() file?: Express.Multer.File,
+  ) {
+    if (!file) {
+      throw new BadRequestException('La imagen es obligatoria');
+    }
+    return this.eventosService.create(createEventoDto, file);
   }
 
   @Get()
@@ -35,9 +47,13 @@ export class EventosController {
   }
 
   @Put(':id')
-  update(@Param('id') id: string, @Body() updateEventoDto: UpdateEventoDto) {
-    console.log('Llega esto,', updateEventoDto);
-    return this.eventosService.update(id, updateEventoDto);
+  @UseInterceptors(FileInterceptor('imagen', { storage: memoryStorage() }))
+  update(
+    @Param('id') id: string,
+    @Body() updateEventoDto: UpdateEventoDto,
+    @UploadedFile() file?: Express.Multer.File, // archivo opcional
+  ) {
+    return this.eventosService.update(id, updateEventoDto, file);
   }
 
   @Delete(':id')
