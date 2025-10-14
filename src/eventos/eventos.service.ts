@@ -1,79 +1,79 @@
 import { Model } from 'mongoose';
-import { Injectable, Inject, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  Inject,
+  NotFoundException,
+  BadRequestException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { Evento } from '../interfaces/evento.interface';
+import { CloudinaryService } from '../cloudinary/cloudinary.service';
+import { parseFechas, toNumber, buildFechasConTickets } from './eventos.utils';
+import 'dotenv/config'; // para cargar variables de entorno
 import { CreateEventoDto } from './dto/create-evento.dto';
 import { UpdateEventoDto } from './dto/update-evento.dto';
-import { v2 as cloudinary } from 'cloudinary';
-import 'dotenv/config'; // para cargar variables de entorno
 
 @Injectable()
 export class EventosService {
   constructor(
-    @Inject('EVENTO_MODEL')
-    private eventoModel: Model<Evento>,
-  ) {
-    // Configuración de Cloudinary
-    cloudinary.config({
-      cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-      api_key: process.env.CLOUDINARY_API_KEY,
-      api_secret: process.env.CLOUDINARY_API_SECRET,
-    });
-  }
+    @Inject('EVENTO_MODEL') private eventoModel: Model<Evento>,
+    private readonly cloudinaryService: CloudinaryService,
+  ) {}
 
   async create(
-    createEventoDto: any,
+    createDto: CreateEventoDto,
     file?: Express.Multer.File,
   ): Promise<Evento> {
-    let imagenUrl: string | undefined;
+    try {
+      const fechas = parseFechas(createDto.fechas);
+      const cantidadEntradas = toNumber(createDto.cantidadEntradas, 0);
+      const precioEntrada = toNumber(createDto.precioEntrada, 0);
 
-    // Subir imagen si existe
-    if (file) {
-      imagenUrl = await new Promise<string>((resolve, reject) => {
-        const stream = cloudinary.uploader.upload_stream(
-          { folder: 'eventos' },
-          (error, result) => {
-            if (error) return reject(error);
-            if (!result?.secure_url)
-              return reject(
-                new Error('No se pudo obtener la URL de Cloudinary'),
-              );
-            resolve(result.secure_url);
-          },
-        );
-        stream.end(file.buffer);
+      const fechasConTickets = buildFechasConTickets(
+        fechas,
+        createDto.titulo,
+        cantidadEntradas,
+      );
+
+      //Verificar duplicado antes de subir imagen
+      const exists = await this.eventoModel.findOne({
+        titulo: createDto.titulo,
       });
+      if (exists) {
+        throw new BadRequestException(
+          `Ya existe un evento con el título "${createDto.titulo}"`,
+        );
+      }
+
+      // Crear documento en memoria
+      const createdEvento = new this.eventoModel({
+        ...createDto,
+        fechas: fechasConTickets,
+        cantidadEntradas,
+        precioEntrada,
+      });
+
+      // Subir imagen solo si no hay duplicado
+      if (file) {
+        try {
+          const imagenUrl = await this.cloudinaryService.uploadImage(file);
+          createdEvento.set('imagenUrl', imagenUrl);
+        } catch (error: any) {
+          console.error('Error subiendo la imagen:', error.message);
+        }
+      }
+
+      await createdEvento.save();
+
+      return createdEvento;
+    } catch (error: any) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new InternalServerErrorException(
+        error.message || 'Error creando el evento',
+      );
     }
-
-    // Parsear fechas desde FormData (llegan como string JSON)
-    const fechasArray: Date[] = JSON.parse(createEventoDto.fechas).map(
-      (f: string) => new Date(f),
-    );
-
-    // Transformar números
-    const cantidadEntradas = Number(createEventoDto.cantidadEntradas);
-    const precioEntrada = Number(createEventoDto.precioEntrada);
-
-    const { titulo, descripcion, ubicacion, ...rest } = createEventoDto;
-
-    // Preparo fechas con tickets
-    const fechasConTickets = fechasArray.map((f: Date) => ({
-      titulo,
-      fecha: f,
-      ticketsDisponibles: cantidadEntradas,
-    }));
-
-    const createdEvento = new this.eventoModel({
-      titulo,
-      descripcion,
-      cantidadEntradas,
-      precioEntrada,
-      ubicacion,
-      ...rest,
-      fechas: fechasConTickets,
-      imagenUrl: imagenUrl,
-    });
-
-    return createdEvento.save();
   }
 
   async findAll(): Promise<Evento[]> {
@@ -82,134 +82,81 @@ export class EventosService {
 
   async findOne(id: string): Promise<Evento> {
     const evento = await this.eventoModel.findById(id).exec();
-    if (!evento) {
+    if (!evento)
       throw new NotFoundException(`Evento con id ${id} no encontrado`);
-    }
     return evento;
   }
 
   async update(
     id: string,
-    updateEventoDto: any,
+    updateDto: UpdateEventoDto,
     file?: Express.Multer.File,
   ): Promise<Evento> {
-    const eventoActual = await this.eventoModel.findById(id).exec();
-    if (!eventoActual) {
-      throw new NotFoundException(`Evento con id ${id} no encontrado`);
-    }
+    const evento = await this.findOne(id);
 
-    let imagenUrl: string | undefined = eventoActual.imagenUrl;
-
-    // Subir nueva imagen si existe y borrar la anterior
+    let imagenUrl = evento.imagenUrl;
     if (file) {
-      // Borrar imagen anterior en Cloudinary
-      if (eventoActual.imagenUrl) {
-        try {
-          const url = eventoActual.imagenUrl;
-          // Extraer la parte de la carpeta y el nombre sin extensión
-          const parts = url.split('/');
-          const fileNameWithExt = parts[parts.length - 1];
-          const fileName = fileNameWithExt.split('.')[0];
-          const folder = parts[parts.length - 2]; // 'eventos' en tu caso
-          const publicId = `${folder}/${fileName}`;
-          await cloudinary.uploader.destroy(publicId);
-        } catch (err) {
-          console.error('Error borrando imagen en Cloudinary:', err);
-        }
-      }
-
-      // Subir la nueva imagen
-      imagenUrl = await new Promise<string>((resolve, reject) => {
-        const stream = cloudinary.uploader.upload_stream(
-          { folder: 'eventos' },
-          (error, result) => {
-            if (error) return reject(error);
-            if (!result?.secure_url)
-              return reject(
-                new Error('No se pudo obtener la URL de Cloudinary'),
-              );
-            resolve(result.secure_url);
-          },
-        );
-        stream.end(file.buffer);
-      });
+      if (imagenUrl) await this.cloudinaryService.deleteImage(imagenUrl);
+      imagenUrl = await this.cloudinaryService.uploadImage(file);
     }
 
-    // Parsear fechas desde FormData (llegan como string JSON)
-    const fechasArray: Date[] = updateEventoDto.fechas
-      ? JSON.parse(updateEventoDto.fechas).map((f: string) => new Date(f))
-      : eventoActual.fechas;
+    const fechas = updateDto.fechas
+      ? parseFechas(updateDto.fechas)
+      : evento.fechas;
 
-    // Transformar números
-    const cantidadEntradas = updateEventoDto.cantidadEntradas
-      ? Number(updateEventoDto.cantidadEntradas)
-      : eventoActual.cantidadEntradas;
+    const cantidadEntradas = toNumber(
+      updateDto.cantidadEntradas,
+      evento.cantidadEntradas,
+    );
+    const precioEntrada = toNumber(
+      updateDto.precioEntrada,
+      evento.precioEntrada,
+    );
 
-    const precioEntrada = updateEventoDto.precioEntrada
-      ? Number(updateEventoDto.precioEntrada)
-      : eventoActual.precioEntrada;
-
-    const { titulo, descripcion, ubicacion, ...rest } = updateEventoDto;
-
-    const fechasConTickets = fechasArray.map((f: Date) => ({
-      titulo: titulo ?? eventoActual.titulo,
-      fecha: f,
-      ticketsDisponibles: cantidadEntradas,
-    }));
-
-    const updatedEvento = {
-      titulo: titulo ?? eventoActual.titulo,
-      descripcion: descripcion ?? eventoActual.descripcion,
+    const fechasConTickets = buildFechasConTickets(
+      fechas,
+      updateDto.titulo ?? evento.titulo,
       cantidadEntradas,
-      precioEntrada,
-      ubicacion: ubicacion ?? eventoActual.ubicacion,
-      ...rest,
-      fechas: fechasConTickets,
-      imagenUrl: imagenUrl,
-    };
+    );
 
-    const eventoActualizado = await this.eventoModel
-      .findByIdAndUpdate(id, updatedEvento, { new: true })
+    const updatedEvento = await this.eventoModel
+      .findByIdAndUpdate(
+        id,
+        {
+          ...evento.toObject(),
+          ...updateDto,
+          fechas: fechasConTickets,
+          cantidadEntradas,
+          precioEntrada,
+          imagenUrl,
+        },
+        { new: true },
+      )
       .exec();
 
-    if (!eventoActualizado) {
+    if (!updatedEvento) {
       throw new NotFoundException(
         `Evento con id ${id} no encontrado al actualizar`,
       );
     }
 
-    return eventoActualizado;
+    return updatedEvento;
   }
 
   async remove(id: string): Promise<Evento> {
-    const evento = await this.eventoModel.findById(id).exec();
-    if (!evento) {
-      throw new NotFoundException(`Evento con id ${id} no encontrado`);
-    }
+    const evento = await this.findOne(id);
 
-    //Eliminar imagen de Cloudinary
     if (evento.imagenUrl) {
-      try {
-        const url = evento.imagenUrl;
-        // Extraer la parte de la carpeta y el nombre sin extensión
-        const parts = url.split('/');
-        const fileNameWithExt = parts[parts.length - 1];
-        const fileName = fileNameWithExt.split('.')[0];
-        const folder = parts[parts.length - 2]; // 'eventos' en tu caso
-        const publicId = `${folder}/${fileName}`;
-        await cloudinary.uploader.destroy(publicId);
-      } catch (err) {
-        console.error('Error borrando imagen en Cloudinary:', err);
-      }
+      await this.cloudinaryService.deleteImage(evento.imagenUrl);
     }
 
-    const eventoEliminado = await this.eventoModel.findByIdAndDelete(id).exec();
-    if (!eventoEliminado) {
+    const deletedEvent = await this.eventoModel.findByIdAndDelete(id).exec();
+
+    if (!deletedEvent) {
       throw new NotFoundException(
         `Evento con id ${id} no encontrado al eliminar`,
       );
     }
-
-    return eventoEliminado;
+    return deletedEvent;
   }
 }
