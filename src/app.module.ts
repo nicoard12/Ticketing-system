@@ -3,9 +3,10 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { EventosModule } from './eventos/eventos.module';
 import { UsuariosModule } from './usuarios/usuarios.module';
+import { AuthzModule } from './authz/authz.module';
 
 @Module({
-  imports: [EventosModule, UsuariosModule],
+  imports: [EventosModule, UsuariosModule, AuthzModule],
   controllers: [AppController],
   providers: [AppService],
 })
