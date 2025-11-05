@@ -92,55 +92,76 @@ export class EventosService {
     updateDto: UpdateEventoDto,
     file?: Express.Multer.File,
   ): Promise<Evento> {
-    const evento = await this.findOne(id);
+    try {
+      const evento = await this.findOne(id);
 
-    let imagenUrl = evento.imagenUrl;
-    if (file) {
-      if (imagenUrl) await this.cloudinaryService.deleteImage(imagenUrl);
-      imagenUrl = await this.cloudinaryService.uploadImage(file);
-    }
+      //Verificación manual de título repetido (si se intenta cambiar)
+      if (updateDto.titulo && updateDto.titulo !== evento.titulo) {
+        const existente = await this.eventoModel.findOne({
+          titulo: updateDto.titulo,
+        });
+        if (existente) {
+          throw new BadRequestException('Ya existe un evento con ese título');
+        }
+      }
 
-    const fechas = updateDto.fechas
-      ? parseFechas(updateDto.fechas)
-      : evento.fechas;
+      //Solo sube imagen si no hay conflicto de título
+      let imagenUrl = evento.imagenUrl;
+      if (file) {
+        if (imagenUrl) await this.cloudinaryService.deleteImage(imagenUrl);
+        imagenUrl = await this.cloudinaryService.uploadImage(file);
+      }
 
-    const cantidadEntradas = toNumber(
-      updateDto.cantidadEntradas,
-      evento.cantidadEntradas,
-    );
-    const precioEntrada = toNumber(
-      updateDto.precioEntrada,
-      evento.precioEntrada,
-    );
+      const fechas = updateDto.fechas
+        ? parseFechas(updateDto.fechas)
+        : evento.fechas;
 
-    const fechasConTickets = buildFechasConTickets(
-      fechas,
-      updateDto.titulo ?? evento.titulo,
-      cantidadEntradas,
-    );
-
-    const updatedEvento = await this.eventoModel
-      .findByIdAndUpdate(
-        id,
-        {
-          ...evento.toObject(),
-          ...updateDto,
-          fechas: fechasConTickets,
-          cantidadEntradas,
-          precioEntrada,
-          imagenUrl,
-        },
-        { new: true },
-      )
-      .exec();
-
-    if (!updatedEvento) {
-      throw new NotFoundException(
-        `Evento con id ${id} no encontrado al actualizar`,
+      const cantidadEntradas = toNumber(
+        updateDto.cantidadEntradas,
+        evento.cantidadEntradas,
       );
-    }
+      const precioEntrada = toNumber(
+        updateDto.precioEntrada,
+        evento.precioEntrada,
+      );
 
-    return updatedEvento;
+      const fechasConTickets = buildFechasConTickets(
+        fechas,
+        updateDto.titulo ?? evento.titulo,
+        cantidadEntradas,
+      );
+
+      const updatedEvento = await this.eventoModel
+        .findByIdAndUpdate(
+          id,
+          {
+            ...evento.toObject(),
+            ...updateDto,
+            fechas: fechasConTickets,
+            cantidadEntradas,
+            precioEntrada,
+            imagenUrl,
+          },
+          { new: true, runValidators: true },
+        )
+        .exec();
+
+      if (!updatedEvento) {
+        throw new NotFoundException(
+          `Evento con id ${id} no encontrado al actualizar`,
+        );
+      }
+
+      return updatedEvento;
+    } catch (error) {
+      if (
+        error instanceof BadRequestException ||
+        error instanceof NotFoundException
+      ) {
+        throw error;
+      }
+      throw new InternalServerErrorException('Error al actualizar el evento');
+    }
   }
 
   async remove(id: string): Promise<Evento> {
