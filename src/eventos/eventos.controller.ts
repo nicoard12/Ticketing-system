@@ -47,11 +47,13 @@ export class EventosController {
     return this.eventosService.findAll();
   }
 
+  @UseGuards(AuthGuard('jwt'))
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.eventosService.findOne(id);
   }
 
+  @UseGuards(AuthGuard('jwt'))
   @Put(':id')
   @UseInterceptors(FileInterceptor('imagen', { storage: memoryStorage() }))
   update(
@@ -62,6 +64,7 @@ export class EventosController {
     return this.eventosService.update(id, updateEventoDto, file);
   }
 
+  @UseGuards(AuthGuard('jwt'))
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.eventosService.remove(id);
