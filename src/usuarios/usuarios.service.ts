@@ -16,7 +16,10 @@ export class UsuariosService {
     return createdEvento.save();
   }
 
-  async findAll(): Promise<Usuario[]> {
-    return this.usuarioModel.find().exec();
+  async find(user: CreateUsuarioDto): Promise<Usuario | null> {
+    const usuario = await this.usuarioModel
+      .findOne({ idAuth: user.idAuth })
+      .exec();
+    return usuario ?? null;
   }
 }
