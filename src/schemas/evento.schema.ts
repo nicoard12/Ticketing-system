@@ -14,4 +14,5 @@ export const EventoSchema = new mongoose.Schema({
   precioEntrada: Number,
   ubicacion: String,
   imagenUrl: String,
+  createdBy: String
 });

@@ -5,6 +5,7 @@ import {
   NotFoundException,
   BadRequestException,
   InternalServerErrorException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { Evento } from '../interfaces/evento.interface';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
@@ -22,6 +23,7 @@ export class EventosService {
 
   async create(
     createDto: CreateEventoDto,
+    AuthId: string,
     file?: Express.Multer.File,
   ): Promise<Evento> {
     try {
@@ -51,6 +53,7 @@ export class EventosService {
         fechas: fechasConTickets,
         cantidadEntradas,
         precioEntrada,
+        createdBy: AuthId,
       });
 
       // Subir imagen solo si no hay duplicado
@@ -90,82 +93,84 @@ export class EventosService {
   async update(
     id: string,
     updateDto: UpdateEventoDto,
+    AuthId,
     file?: Express.Multer.File,
   ): Promise<Evento> {
-    try {
-      const evento = await this.findOne(id);
+    const evento = await this.findOne(id);
 
-      //Verificación manual de título repetido (si se intenta cambiar)
-      if (updateDto.titulo && updateDto.titulo !== evento.titulo) {
-        const existente = await this.eventoModel.findOne({
-          titulo: updateDto.titulo,
-        });
-        if (existente) {
-          throw new BadRequestException('Ya existe un evento con ese título');
-        }
-      }
-
-      //Solo sube imagen si no hay conflicto de título
-      let imagenUrl = evento.imagenUrl;
-      if (file) {
-        if (imagenUrl) await this.cloudinaryService.deleteImage(imagenUrl);
-        imagenUrl = await this.cloudinaryService.uploadImage(file);
-      }
-
-      const fechas = updateDto.fechas
-        ? parseFechas(updateDto.fechas)
-        : evento.fechas;
-
-      const cantidadEntradas = toNumber(
-        updateDto.cantidadEntradas,
-        evento.cantidadEntradas,
+    if (evento.createdBy != AuthId) {
+      throw new ForbiddenException(
+        'No tenés permiso para modificar este evento.',
       );
-      const precioEntrada = toNumber(
-        updateDto.precioEntrada,
-        evento.precioEntrada,
-      );
-
-      const fechasConTickets = buildFechasConTickets(
-        fechas,
-        updateDto.titulo ?? evento.titulo,
-        cantidadEntradas,
-      );
-
-      const updatedEvento = await this.eventoModel
-        .findByIdAndUpdate(
-          id,
-          {
-            ...evento.toObject(),
-            ...updateDto,
-            fechas: fechasConTickets,
-            cantidadEntradas,
-            precioEntrada,
-            imagenUrl,
-          },
-          { new: true, runValidators: true },
-        )
-        .exec();
-
-      if (!updatedEvento) {
-        throw new NotFoundException(
-          `Evento con id ${id} no encontrado al actualizar`,
-        );
-      }
-
-      return updatedEvento;
-    } catch (error) {
-      if (
-        error instanceof BadRequestException ||
-        error instanceof NotFoundException
-      ) {
-        throw error;
-      }
-      throw new InternalServerErrorException('Error al actualizar el evento');
     }
+
+    //Verificación manual de título repetido (si se intenta cambiar)
+    if (updateDto.titulo && updateDto.titulo !== evento.titulo) {
+      const existente = await this.eventoModel.findOne({
+        titulo: updateDto.titulo,
+      });
+      if (existente) {
+        throw new BadRequestException('Ya existe un evento con ese título');
+      }
+    }
+
+    //Solo sube imagen si no hay conflicto de título
+    let imagenUrl = evento.imagenUrl;
+    if (file) {
+      if (imagenUrl) await this.cloudinaryService.deleteImage(imagenUrl);
+      imagenUrl = await this.cloudinaryService.uploadImage(file);
+    }
+
+    const fechas = updateDto.fechas
+      ? parseFechas(updateDto.fechas)
+      : evento.fechas;
+
+    const cantidadEntradas = toNumber(
+      updateDto.cantidadEntradas,
+      evento.cantidadEntradas,
+    );
+    const precioEntrada = toNumber(
+      updateDto.precioEntrada,
+      evento.precioEntrada,
+    );
+
+    const fechasConTickets = buildFechasConTickets(
+      fechas,
+      updateDto.titulo ?? evento.titulo,
+      cantidadEntradas,
+    );
+
+    const updatedEvento = await this.eventoModel
+      .findByIdAndUpdate(
+        id,
+        {
+          ...evento.toObject(),
+          ...updateDto,
+          fechas: fechasConTickets,
+          cantidadEntradas,
+          precioEntrada,
+          imagenUrl,
+        },
+        { new: true, runValidators: true },
+      )
+      .exec();
+
+    if (!updatedEvento) {
+      throw new NotFoundException(
+        `Evento con id ${id} no encontrado al actualizar`,
+      );
+    }
+
+    return updatedEvento;
   }
 
-  async remove(id: string): Promise<Evento> {
+  async remove(id: string, AuthId: string): Promise<Evento> {
     const evento = await this.findOne(id);
+
+    if (evento.createdBy !== AuthId)
+      throw new ForbiddenException(
+        'No tenés permiso para eliminar este evento.',
+      );
 
     if (evento.imagenUrl) {
       await this.cloudinaryService.deleteImage(evento.imagenUrl);
