@@ -22,7 +22,6 @@ import { memoryStorage } from 'multer';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiBearerAuth } from '@nestjs/swagger';
 
-
 @ApiBearerAuth()
 @Controller('eventos')
 @UsePipes(new ValidationPipe())
@@ -44,6 +43,7 @@ export class EventosController {
 
   @Get()
   findAll() {
+    console.log('holaa');
     return this.eventosService.findAll();
   }
 
