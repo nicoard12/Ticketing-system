@@ -5,9 +5,8 @@ export enum Rol {
 }
 
 export class Usuario {
+  idAuth: string;
   nombre: string;
-  apellido: string;
   email: string;
-  password: string;
   rol: Rol;
 }

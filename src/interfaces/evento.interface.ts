@@ -8,4 +8,5 @@ export interface Evento extends Document {
   readonly precioEntrada: number;
   readonly ubicacion: string;
   readonly imagenUrl: string;
+  readonly createdBy: string;
 }

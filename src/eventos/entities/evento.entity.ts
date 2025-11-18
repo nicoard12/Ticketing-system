@@ -6,4 +6,5 @@ export class Evento {
   precioEntrada: number;
   ubicacion: string;
   imagenUrl: string;
+  createdBy: string;
 }

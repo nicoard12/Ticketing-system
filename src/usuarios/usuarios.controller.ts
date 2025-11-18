@@ -16,13 +16,9 @@ export class UsuariosController {
   constructor(private readonly usuariosService: UsuariosService) {}
 
   @Post()
-  create(@Body() createUsuarioDto: CreateUsuarioDto) {
+  async create(@Body() createUsuarioDto: CreateUsuarioDto) {
+    const usuario = await this.usuariosService.find(createUsuarioDto);
+    if (usuario) return usuario;
     return this.usuariosService.create(createUsuarioDto);
   }
-
-  @Get()
-  findAll() {
-    return this.usuariosService.findAll();
-  }
-
 }

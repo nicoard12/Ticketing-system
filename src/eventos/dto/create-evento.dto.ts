@@ -44,4 +44,8 @@ export class CreateEventoDto {
   @IsUrl()
   @IsOptional()
   imagenUrl: string;
+
+  @IsString()
+  @IsOptional()
+  createdBy: string;
 }
