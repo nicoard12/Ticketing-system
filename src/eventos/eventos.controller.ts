@@ -46,7 +46,6 @@ export class EventosController {
 
   @Get()
   findAll() {
-    console.log('holaa');
     return this.eventosService.findAll();
   }
 
