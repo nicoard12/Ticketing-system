@@ -1,5 +1,5 @@
 import { IsEmail, IsEnum, IsNotEmpty, IsString } from 'class-validator';
-import { Rol } from '../entities/usuario.entity';
+import { Rol } from 'src/interfaces/usuario.interface';
 
 
 export class CreateUsuarioDto {

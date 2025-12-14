@@ -1,5 +1,10 @@
 import { Document } from 'mongoose';
-import { Rol } from 'src/usuarios/entities/usuario.entity';
+
+export enum Rol {
+  PRODUCTOR = 'productor',
+  NORMAL = 'normal',
+  STAFF = 'staff',
+}
 
 export interface Usuario extends Document {
   readonly idAuth: string;

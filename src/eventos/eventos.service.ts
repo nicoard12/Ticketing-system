@@ -14,7 +14,7 @@ import 'dotenv/config'; // para cargar variables de entorno
 import { CreateEventoDto } from './dto/create-evento.dto';
 import { UpdateEventoDto } from './dto/update-evento.dto';
 import { UsuariosService } from 'src/usuarios/usuarios.service';
-import { Rol } from 'src/usuarios/entities/usuario.entity';
+import { Rol } from 'src/interfaces/usuario.interface';
 
 @Injectable()
 export class EventosService {
