@@ -17,7 +17,7 @@ export class UsuariosController {
 
   @Post()
   async create(@Body() createUsuarioDto: CreateUsuarioDto) {
-    const usuario = await this.usuariosService.find(createUsuarioDto);
+    const usuario = await this.usuariosService.find(createUsuarioDto.idAuth);
     if (usuario) return usuario;
     return this.usuariosService.create(createUsuarioDto);
   }

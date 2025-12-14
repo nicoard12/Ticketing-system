@@ -13,11 +13,14 @@ import { parseFechas, toNumber, buildFechasConTickets } from './eventos.utils';
 import 'dotenv/config'; // para cargar variables de entorno
 import { CreateEventoDto } from './dto/create-evento.dto';
 import { UpdateEventoDto } from './dto/update-evento.dto';
+import { UsuariosService } from 'src/usuarios/usuarios.service';
+import { Rol } from 'src/usuarios/entities/usuario.entity';
 
 @Injectable()
 export class EventosService {
   constructor(
     @Inject('EVENTO_MODEL') private eventoModel: Model<Evento>,
+    private readonly usuariosService: UsuariosService,
     private readonly cloudinaryService: CloudinaryService,
   ) {}
 
@@ -27,6 +30,11 @@ export class EventosService {
     file?: Express.Multer.File,
   ): Promise<Evento> {
     try {
+      const user = await this.usuariosService.find(AuthId);
+
+      if (user!.rol != Rol.PRODUCTOR)
+        throw new BadRequestException(`No tenés permiso para crear eventos.`);
+
       const fechas = parseFechas(createDto.fechas);
       const cantidadEntradas = toNumber(createDto.cantidadEntradas, 0);
       const precioEntrada = toNumber(createDto.precioEntrada, 0);
@@ -98,7 +106,9 @@ export class EventosService {
   ): Promise<Evento> {
     const evento = await this.findOne(id);
 
-    if (evento.createdBy != AuthId) {
+    const user = await this.usuariosService.find(AuthId);
+
+    if (evento.createdBy != AuthId || user!.rol != Rol.PRODUCTOR) {
       throw new ForbiddenException(
         'No tenés permiso para modificar este evento.',
       );
@@ -167,10 +177,13 @@ export class EventosService {
   async remove(id: string, AuthId: string): Promise<Evento> {
     const evento = await this.findOne(id);
 
-    if (evento.createdBy !== AuthId)
+    const user = await this.usuariosService.find(AuthId);
+
+    if (evento.createdBy != AuthId || user!.rol != Rol.PRODUCTOR) {
       throw new ForbiddenException(
         'No tenés permiso para eliminar este evento.',
       );
+    }
 
     if (evento.imagenUrl) {
       await this.cloudinaryService.deleteImage(evento.imagenUrl);

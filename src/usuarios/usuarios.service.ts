@@ -2,7 +2,6 @@ import { Model } from 'mongoose';
 import { Injectable, Inject } from '@nestjs/common';
 import { Usuario } from '../interfaces/usuario.interface';
 import { CreateUsuarioDto } from './dto/create-usuario.dto';
-import { UpdateUsuarioDto } from './dto/update-usuario.dto';
 
 @Injectable()
 export class UsuariosService {
@@ -12,13 +11,16 @@ export class UsuariosService {
   ) {}
 
   async create(createUsuarioDto: CreateUsuarioDto): Promise<Usuario> {
-    const createdEvento = new this.usuarioModel(createUsuarioDto);
-    return createdEvento.save();
+    const createdUsuario = new this.usuarioModel({
+      ...createUsuarioDto,
+      rol: 'normal',
+    });
+    return createdUsuario.save();
   }
 
-  async find(user: CreateUsuarioDto): Promise<Usuario | null> {
+  async find(idAuth: string): Promise<Usuario | null> {
     const usuario = await this.usuarioModel
-      .findOne({ idAuth: user.idAuth })
+      .findOne({ idAuth })
       .exec();
     return usuario ?? null;
   }
