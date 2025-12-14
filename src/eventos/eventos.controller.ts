@@ -25,7 +25,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { ApiBearerAuth } from '@nestjs/swagger';
 
 @ApiBearerAuth()
-@Controller('eventos')
+@Controller('events')
 @UsePipes(new ValidationPipe())
 export class EventosController {
   constructor(private readonly eventosService: EventosService) {}
