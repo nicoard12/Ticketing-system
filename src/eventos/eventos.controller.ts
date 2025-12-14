@@ -49,7 +49,6 @@ export class EventosController {
     return this.eventosService.findAll();
   }
 
-  @UseGuards(AuthGuard('jwt'))
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.eventosService.findOne(id);
