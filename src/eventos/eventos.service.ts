@@ -55,7 +55,6 @@ export class EventosService {
         );
       }
 
-      // Crear documento en memoria
       const createdEvento = new this.eventoModel({
         ...createDto,
         fechas: fechasConTickets,
@@ -64,7 +63,7 @@ export class EventosService {
         createdBy: AuthId,
       });
 
-      // Subir imagen solo si no hay duplicado
+      // La imagen se sube una vez que se verificó nombre duplicado de evento, para evitar ocupar espacio innecesario en la nube
       if (file) {
         try {
           const imagenUrl = await this.cloudinaryService.uploadImage(file);
@@ -101,20 +100,22 @@ export class EventosService {
   async update(
     id: string,
     updateDto: UpdateEventoDto,
-    AuthId,
+    authId: string,
     file?: Express.Multer.File,
   ): Promise<Evento> {
-    const evento = await this.findOne(id);
-
-    const user = await this.usuariosService.find(AuthId);
-
-    if (evento.createdBy != AuthId || user!.rol != Rol.PRODUCTOR) {
+    const user = await this.usuariosService.find(authId);
+    if (user!.rol !== Rol.PRODUCTOR)
       throw new ForbiddenException(
         'No tenés permiso para modificar este evento.',
       );
-    }
 
-    //Verificación manual de título repetido (si se intenta cambiar)
+    const evento = await this.findOne(id);
+    if (evento.createdBy !== authId)
+      throw new ForbiddenException(
+        'No tenés permiso para modificar este evento.',
+      );
+
+    //Verificar titulo repetido
     if (updateDto.titulo && updateDto.titulo !== evento.titulo) {
       const existente = await this.eventoModel.findOne({
         titulo: updateDto.titulo,
@@ -124,13 +125,24 @@ export class EventosService {
       }
     }
 
-    //Solo sube imagen si no hay conflicto de título
+    // Subir nueva imagen, borrar la anterior
     let imagenUrl = evento.imagenUrl;
+
     if (file) {
-      if (imagenUrl) await this.cloudinaryService.deleteImage(imagenUrl);
-      imagenUrl = await this.cloudinaryService.uploadImage(file);
+      try {
+        const nuevaImagen = await this.cloudinaryService.uploadImage(file);
+
+        if (imagenUrl) {
+          await this.cloudinaryService.deleteImage(imagenUrl);
+        }
+
+        imagenUrl = nuevaImagen;
+      } catch (error) {
+        throw new BadRequestException('Error al subir la imagen del evento');
+      }
     }
 
+    // -------- Fechas y números --------
     const fechas = updateDto.fechas
       ? parseFechas(updateDto.fechas)
       : evento.fechas;
@@ -139,6 +151,7 @@ export class EventosService {
       updateDto.cantidadEntradas,
       evento.cantidadEntradas,
     );
+
     const precioEntrada = toNumber(
       updateDto.precioEntrada,
       evento.precioEntrada,
@@ -150,52 +163,49 @@ export class EventosService {
       cantidadEntradas,
     );
 
-    const updatedEvento = await this.eventoModel
-      .findByIdAndUpdate(
-        id,
-        {
-          ...evento.toObject(),
-          ...updateDto,
-          fechas: fechasConTickets,
-          cantidadEntradas,
-          precioEntrada,
-          imagenUrl,
-        },
-        { new: true, runValidators: true },
-      )
-      .exec();
+    // Update
+    evento.set({
+      titulo: updateDto.titulo ?? evento.titulo,
+      descripcion: updateDto.descripcion ?? evento.descripcion,
+      ubicacion: updateDto.ubicacion ?? evento.ubicacion,
+      fechas: fechasConTickets,
+      cantidadEntradas,
+      precioEntrada,
+      imagenUrl,
+    });
 
-    if (!updatedEvento) {
-      throw new NotFoundException(
-        `Evento con id ${id} no encontrado al actualizar`,
-      );
-    }
+    await evento.save();
 
-    return updatedEvento;
+    return evento;
   }
 
-  async remove(id: string, AuthId: string): Promise<Evento> {
-    const evento = await this.findOne(id);
-
-    const user = await this.usuariosService.find(AuthId);
-
-    if (evento.createdBy != AuthId || user!.rol != Rol.PRODUCTOR) {
+  async remove(id: string, authId: string): Promise<Evento> {
+    const user = await this.usuariosService.find(authId);
+    if (user!.rol !== Rol.PRODUCTOR) {
       throw new ForbiddenException(
         'No tenés permiso para eliminar este evento.',
       );
     }
 
-    if (evento.imagenUrl) {
-      await this.cloudinaryService.deleteImage(evento.imagenUrl);
-    }
-
-    const deletedEvent = await this.eventoModel.findByIdAndDelete(id).exec();
-
-    if (!deletedEvent) {
-      throw new NotFoundException(
-        `Evento con id ${id} no encontrado al eliminar`,
+    const evento = await this.findOne(id);
+    if (evento.createdBy !== authId) {
+      throw new ForbiddenException(
+        'No tenés permiso para eliminar este evento.',
       );
     }
-    return deletedEvent;
+
+    // Borrar imagen
+    if (evento.imagenUrl) {
+      try {
+        await this.cloudinaryService.deleteImage(evento.imagenUrl);
+      } catch (error) {
+        throw new BadRequestException('Error al eliminar la imagen del evento');
+      }
+    }
+
+    // Borrar evento
+    const deletedEvent = await this.eventoModel.findByIdAndDelete(id).exec();
+
+    return deletedEvent!;
   }
 }
