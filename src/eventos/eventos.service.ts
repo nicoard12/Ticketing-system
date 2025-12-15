@@ -1,4 +1,5 @@
 import { Model } from 'mongoose';
+import 'dotenv/config';
 import {
   Injectable,
   Inject,
@@ -10,7 +11,6 @@ import {
 import { Evento } from '../interfaces/evento.interface';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
 import { parseFechas, toNumber, buildFechasConTickets } from './eventos.utils';
-import 'dotenv/config'; // para cargar variables de entorno
 import { CreateEventoDto } from './dto/create-evento.dto';
 import { UpdateEventoDto } from './dto/update-evento.dto';
 import { UsuariosService } from 'src/usuarios/usuarios.service';
