@@ -1,8 +1,8 @@
 import { IsEmail, IsEnum, IsNotEmpty, IsString } from 'class-validator';
-import { Rol } from 'src/interfaces/usuario.interface';
+import { Rol } from 'src/interfaces/user.interface';
 
 
-export class CreateUsuarioDto {
+export class CreateUserDto {
   @IsString()
   @IsNotEmpty()
   idAuth: string;

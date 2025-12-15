@@ -11,7 +11,7 @@ import {
   IsOptional,
 } from 'class-validator';
 
-export class CreateEventoDto {
+export class CreateEventDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(40)

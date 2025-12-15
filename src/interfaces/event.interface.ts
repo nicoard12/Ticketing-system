@@ -1,6 +1,6 @@
 import { Document } from 'mongoose';
 
-export interface Evento extends Document {
+export interface Event extends Document {
   readonly titulo: string;
   readonly fechas: Date[];
   readonly descripcion: string;

@@ -6,7 +6,7 @@ export enum Rol {
   STAFF = 'staff',
 }
 
-export interface Usuario extends Document {
+export interface User extends Document {
   readonly idAuth: string;
   readonly nombre: string;
   readonly email: string;

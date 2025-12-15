@@ -1,14 +1,14 @@
 import * as mongoose from 'mongoose';
 
-const FechaSchema = new mongoose.Schema({
+const DateSchema = new mongoose.Schema({
   titulo: { type: String, required: true },
   fecha: { type: Date, required: true },
   ticketsDisponibles: { type: Number, required: true },
 });
 
-export const EventoSchema = new mongoose.Schema({
+export const EventSchema = new mongoose.Schema({
   titulo: { type: String, unique: true },
-  fechas: [FechaSchema],
+  fechas: [DateSchema],
   descripcion: String,
   cantidadEntradas: Number,
   precioEntrada: Number,
