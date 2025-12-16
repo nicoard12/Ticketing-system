@@ -3,8 +3,6 @@ import { EventDate } from "src/interfaces/event.interface";
 export function parseFechas(fechas: string): EventDate[] {
   const parsed = JSON.parse(fechas) as EventDate[];
 
-  console.log(" a ver el parsed ", parsed)
-
   return parsed
     .filter(
       (f) => !!f?.fecha && !isNaN(Date.parse(String(f.fecha)))
