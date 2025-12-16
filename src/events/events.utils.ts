@@ -1,23 +1,24 @@
-export function parseFechas(fechas: any): Date[] {
-  if (!fechas) return [];
+import { EventDate } from "src/interfaces/event.interface";
 
-  return JSON.parse(fechas)
-    .filter((f: string | null) => f && !isNaN(Date.parse(f)))
-    .map((f: string) => new Date(f));
+export function parseFechas(fechas: string): EventDate[] {
+  const parsed = JSON.parse(fechas) as EventDate[];
+
+  console.log(" a ver el parsed ", parsed)
+
+  return parsed
+    .filter(
+      (f) => !!f?.fecha && !isNaN(Date.parse(String(f.fecha)))
+    )
+    .map((f) => ({
+      fecha: new Date(f.fecha),
+      cantidadEntradas: toNumber(f.cantidadEntradas, 0),
+    }));
 }
+
+
 
 export function toNumber(value: any, fallback: number): number {
   return value ? Number(value) : fallback;
 }
 
-export function buildFechasConTickets(
-  fechas: Date[],
-  titulo: string,
-  cantidadEntradas: number,
-) {
-  return fechas.map((f) => ({
-    titulo,
-    fecha: f,
-    ticketsDisponibles: cantidadEntradas,
-  }));
-}
+

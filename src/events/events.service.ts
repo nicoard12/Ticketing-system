@@ -10,7 +10,7 @@ import {
 } from '@nestjs/common';
 import { Event } from '../interfaces/event.interface';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
-import { parseFechas, toNumber, buildFechasConTickets } from './events.utils';
+import { parseFechas, toNumber } from './events.utils';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { UsersService } from 'src/user/users.service';
@@ -35,15 +35,11 @@ export class EventsService {
       if (user!.rol != Rol.PRODUCTOR)
         throw new BadRequestException(`No tenés permiso para crear eventos.`);
 
-      const fechas = parseFechas(createDto.fechas);
-      const cantidadEntradas = toNumber(createDto.cantidadEntradas, 0);
+      const fechasConTickets = parseFechas(createDto.fechas);
+
+      console.log(" a ver fechas con tickets, ", fechasConTickets)
       const precioEntrada = toNumber(createDto.precioEntrada, 0);
 
-      const fechasConTickets = buildFechasConTickets(
-        fechas,
-        createDto.titulo,
-        cantidadEntradas,
-      );
 
       //Verificar duplicado antes de subir imagen
       const exists = await this.eventModel.findOne({
@@ -58,7 +54,6 @@ export class EventsService {
       const createdEvent = new this.eventModel({
         ...createDto,
         fechas: fechasConTickets,
-        cantidadEntradas,
         precioEntrada,
         createdBy: AuthId,
       });
@@ -143,25 +138,13 @@ export class EventsService {
     }
 
     // -------- Fechas y números --------
-    const fechas = updateDto.fechas
-      ? parseFechas(updateDto.fechas)
-      : event.fechas;
-
-    const cantidadEntradas = toNumber(
-      updateDto.cantidadEntradas,
-      event.cantidadEntradas,
-    );
+    const fechasConTickets = parseFechas(updateDto.fechas!)
 
     const precioEntrada = toNumber(
       updateDto.precioEntrada,
       event.precioEntrada,
     );
 
-    const fechasConTickets = buildFechasConTickets(
-      fechas,
-      updateDto.titulo ?? event.titulo,
-      cantidadEntradas,
-    );
 
     // Update
     event.set({
@@ -169,7 +152,6 @@ export class EventsService {
       descripcion: updateDto.descripcion ?? event.descripcion,
       ubicacion: updateDto.ubicacion ?? event.ubicacion,
       fechas: fechasConTickets,
-      cantidadEntradas,
       precioEntrada,
       imagenUrl,
     });
