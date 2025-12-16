@@ -37,7 +37,6 @@ export class EventsService {
 
       const fechasConTickets = parseFechas(createDto.fechas);
 
-      console.log(" a ver fechas con tickets, ", fechasConTickets)
       const precioEntrada = toNumber(createDto.precioEntrada, 0);
 
 
