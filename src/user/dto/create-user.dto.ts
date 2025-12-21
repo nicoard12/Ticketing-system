@@ -16,10 +16,14 @@ export class CreateUserDto {
   @IsNotEmpty()
   email: string;
 
+  @IsString()
+  imagen: string;
+
   @IsEnum(Rol, {
     message: 'el rol debe ser productor, normal o staff',
   })
   @IsNotEmpty()
+  @IsEnum(Rol)
   rol: Rol;
   
 }

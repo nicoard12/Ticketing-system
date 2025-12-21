@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { Rol, User } from '../interfaces/user.interface';
 import { CreateUserDto } from './dto/create-user.dto';
+import { ChangeRoleDto } from './dto/change-role.dto';
 
 @Injectable()
 export class UsersService {
@@ -44,8 +45,36 @@ export class UsersService {
         throw error;
       }
       throw new InternalServerErrorException(
-        error.message || 'Error creando el evento',
+        error.message || 'Error obteniendo los usuarios',
       );
     }
+  }
+
+  async changeRole(
+    authId: string,
+    dto: ChangeRoleDto,
+    userId: string,
+  ): Promise<User> {
+    const userAdmin = await this.find(authId);
+    if (userAdmin?.rol !== Rol.ADMIN) {
+      throw new BadRequestException(
+        'No tenés permiso para modificar los roles',
+      );
+    }
+
+    const user = await this.find(userId);
+    if (!user) {
+      throw new BadRequestException('El usuario no existe');
+    }
+    if (user.email === 'nico.ticketingsystem.iaw@gmail.com') {
+      throw new BadRequestException(
+        'No podés modificar el rol del admin principal',
+      );
+    }
+
+    user.set({ rol: dto.rol });
+    await user.save();
+
+    return user;
   }
 }
