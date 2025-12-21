@@ -5,4 +5,4 @@
 4. Ejecutar `npm install`
 5. Ejecutar `npm start`
 
-> Para probar la subida de imágenes se requieren credenciales propias de Cloudinary.
+> Para probar el sistema completo se requieren credenciales propias de Cloudinary (subida de imágenes) y Auth0 (autenticación).
