@@ -32,7 +32,7 @@ export class EventsService {
     try {
       const user = await this.usersService.find(AuthId);
 
-      if (user!.rol != Rol.PRODUCTOR)
+      if (user?.rol != Rol.PRODUCTOR)
         throw new BadRequestException(`No tenés permiso para crear eventos.`);
 
       const fechasConTickets = parseFechas(createDto.fechas);
@@ -98,7 +98,7 @@ export class EventsService {
     file?: Express.Multer.File,
   ): Promise<Event> {
     const user = await this.usersService.find(authId);
-    if (user!.rol !== Rol.PRODUCTOR)
+    if (user?.rol !== Rol.PRODUCTOR)
       throw new ForbiddenException(
         'No tenés permiso para modificar este evento.',
       );
@@ -162,7 +162,7 @@ export class EventsService {
 
   async remove(id: string, authId: string): Promise<Event> {
     const user = await this.usersService.find(authId);
-    if (user!.rol !== Rol.PRODUCTOR) {
+    if (user?.rol !== Rol.PRODUCTOR) {
       throw new ForbiddenException(
         'No tenés permiso para eliminar este evento.',
       );

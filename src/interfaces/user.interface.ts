@@ -4,6 +4,7 @@ export enum Rol {
   PRODUCTOR = 'productor',
   NORMAL = 'normal',
   STAFF = 'staff',
+  ADMIN= "admin"
 }
 
 export interface User extends Document {
