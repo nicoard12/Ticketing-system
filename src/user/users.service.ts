@@ -9,6 +9,8 @@ import { Rol, User } from '../interfaces/user.interface';
 import { CreateUserDto } from './dto/create-user.dto';
 import { ChangeRoleDto } from './dto/change-role.dto';
 
+const MAIN_ADMIN_EMAIL = 'nico.ticketingsystem.iaw@gmail.com';
+
 @Injectable()
 export class UsersService {
   constructor(
@@ -17,9 +19,12 @@ export class UsersService {
   ) {}
 
   async create(createUsuarioDto: CreateUserDto): Promise<User> {
+    let rol: string;
+    if (createUsuarioDto.email == MAIN_ADMIN_EMAIL) rol = 'admin';
+    else rol = 'normal';
     const createdUser = new this.userModel({
       ...createUsuarioDto,
-      rol: 'normal',
+      rol,
     });
     return createdUser.save();
   }
@@ -66,7 +71,7 @@ export class UsersService {
     if (!user) {
       throw new BadRequestException('El usuario no existe');
     }
-    if (user.email === 'nico.ticketingsystem.iaw@gmail.com') {
+    if (user.email === MAIN_ADMIN_EMAIL) {
       throw new BadRequestException(
         'No podés modificar el rol del admin principal',
       );
