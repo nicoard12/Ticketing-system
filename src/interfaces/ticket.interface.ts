@@ -7,6 +7,7 @@ export enum StatusTicket {
 }
 
 export interface Ticket extends Document {
+  readonly userId: string;
   readonly eventId: string;
   readonly eventDateId: string;
   readonly quantity: number;

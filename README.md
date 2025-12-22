@@ -5,4 +5,7 @@
 4. Ejecutar `npm install`
 5. Ejecutar `npm start`
 
-> Para probar el sistema completo se requieren credenciales propias de Cloudinary (subida de imágenes) y Auth0 (autenticación).
+> Para probar el sistema completo se requieren credenciales propias de:
+> - **Cloudinary** (gestión y subida de imágenes)
+> - **Auth0** (autenticación de usuarios)
+> - **Gmail SMTP** mediante contraseña de aplicación (envío de emails)

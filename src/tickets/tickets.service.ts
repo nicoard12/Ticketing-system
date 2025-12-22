@@ -14,6 +14,10 @@ import { Rol } from 'src/interfaces/user.interface';
 import { UsersService } from 'src/user/users.service';
 import { EventsService } from 'src/events/events.service';
 import * as crypto from 'crypto';
+import { sendMail } from './tickets.utils';
+import { randomInt } from 'crypto';
+
+const CODE_EXPIRATION = 10; // 10 minutos
 
 @Injectable()
 export class TicketsService {
@@ -43,7 +47,7 @@ export class TicketsService {
         createTicketDto.quantity,
       );
 
-      const verificationCode = crypto.randomBytes(16).toString('hex');
+      const verificationCode = randomInt(100000, 1000000).toString();
 
       const verificationCodeHash = crypto
         .createHash('sha256')
@@ -51,20 +55,33 @@ export class TicketsService {
         .digest('hex');
 
       const verificationCodeExpiresAt = new Date(
-        Date.now() + 10 * 60 * 1000, // 10 minutos
+        Date.now() + CODE_EXPIRATION * 60 * 1000,
       );
 
       const createdTicket = new this.ticketModel({
         ...createTicketDto,
+        userId: user._id,
         purchaserEmail: user.email,
         status: StatusTicket.PENDING,
         verificationCode: verificationCodeHash,
         verificationCodeExpiresAt,
       });
 
-      //TODO: enviar email de verificacion
+      const savedTicket = await createdTicket.save();
 
-      return createdTicket.save();
+      sendMail(user, verificationCode, CODE_EXPIRATION).catch((err) =>  //sin await para no bloquear el flujo y dar una mejor experiencia al usuario
+        console.error('Error enviando mail:', err),
+      ); 
+
+      return {
+        _id: savedTicket._id,
+        userId: savedTicket.userId,
+        eventId: savedTicket.eventId,
+        eventDateId: savedTicket.eventDateId,
+        quantity: savedTicket.quantity,
+        purchaserEmail: savedTicket.purchaserEmail,
+        status: savedTicket.status,
+      };
     } catch (error: any) {
       if (error instanceof HttpException) throw error;
       throw new InternalServerErrorException(
