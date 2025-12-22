@@ -10,5 +10,6 @@ import { UsersModule } from 'src/user/users.module';
   imports: [DatabaseModule, CloudinaryModule, UsersModule],
   controllers: [EventsController],
   providers: [EventsService, ...eventsProviders],
+  exports: [EventsService]
 })
 export class EventsModule {}

@@ -7,6 +7,7 @@ import {
   BadRequestException,
   InternalServerErrorException,
   ForbiddenException,
+  HttpException,
 } from '@nestjs/common';
 import { Event } from '../interfaces/event.interface';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
@@ -59,21 +60,15 @@ export class EventsService {
 
       // La imagen se sube una vez que se verificó nombre duplicado de evento, para evitar ocupar espacio innecesario en la nube
       if (file) {
-        try {
-          const imagenUrl = await this.cloudinaryService.uploadImage(file);
-          createdEvent.set('imagenUrl', imagenUrl);
-        } catch (error: any) {
-          console.error('Error subiendo la imagen:', error.message);
-        }
+        const imagenUrl = await this.cloudinaryService.uploadImage(file);
+        createdEvent.set('imagenUrl', imagenUrl);
       }
 
       await createdEvent.save();
 
       return createdEvent;
     } catch (error: any) {
-      if (error instanceof BadRequestException) {
-        throw error;
-      }
+      if (error instanceof HttpException) throw error;
       throw new InternalServerErrorException(
         error.message || 'Error creando el evento',
       );
@@ -101,66 +96,66 @@ export class EventsService {
     authId: string,
     file?: Express.Multer.File,
   ): Promise<Event> {
-    const user = await this.usersService.find(authId);
-    if (user?.rol !== Rol.PRODUCTOR)
-      throw new ForbiddenException(
-        'No tenés permiso para modificar este evento.',
+    try {
+      const user = await this.usersService.find(authId);
+      if (user?.rol !== Rol.PRODUCTOR)
+        throw new ForbiddenException(
+          'No tenés permiso para modificar este evento.',
+        );
+
+      const event = await this.findOne(id);
+      if (event.createdBy !== authId)
+        throw new ForbiddenException(
+          'No tenés permiso para modificar este evento.',
+        );
+
+      // -------- Fechas y números --------
+      const fechasConTickets = parseFechas(updateDto.fechas!);
+
+      const precioEntrada = toNumber(
+        updateDto.precioEntrada,
+        event.precioEntrada,
       );
 
-    const event = await this.findOne(id);
-    if (event.createdBy !== authId)
-      throw new ForbiddenException(
-        'No tenés permiso para modificar este evento.',
-      );
-
-    // -------- Fechas y números --------
-    const fechasConTickets = parseFechas(updateDto.fechas!);
-
-    const precioEntrada = toNumber(
-      updateDto.precioEntrada,
-      event.precioEntrada,
-    );
-
-    //Verificar titulo repetido
-    if (updateDto.titulo && updateDto.titulo !== event.titulo) {
-      const existente = await this.eventModel.findOne({
-        titulo: updateDto.titulo,
-      });
-      if (existente) {
-        throw new BadRequestException('Ya existe un evento con ese título');
+      //Verificar titulo repetido
+      if (updateDto.titulo && updateDto.titulo !== event.titulo) {
+        const existente = await this.eventModel.findOne({
+          titulo: updateDto.titulo,
+        });
+        if (existente) {
+          throw new BadRequestException('Ya existe un evento con ese título');
+        }
       }
-    }
 
-    // Subir nueva imagen, borrar la anterior
-    let imagenUrl = event.imagenUrl;
-
-    if (file) {
-      try {
+      // Subir nueva imagen, borrar la anterior
+      let imagenUrl = event.imagenUrl;
+      if (file) {
         const nuevaImagen = await this.cloudinaryService.uploadImage(file);
-
         if (imagenUrl) {
           await this.cloudinaryService.deleteImage(imagenUrl);
         }
-
         imagenUrl = nuevaImagen;
-      } catch (error) {
-        throw new BadRequestException('Error al subir la imagen del evento');
       }
+
+      // Update
+      event.set({
+        titulo: updateDto.titulo ?? event.titulo,
+        descripcion: updateDto.descripcion ?? event.descripcion,
+        ubicacion: updateDto.ubicacion ?? event.ubicacion,
+        fechas: fechasConTickets,
+        precioEntrada,
+        imagenUrl,
+      });
+
+      await event.save();
+
+      return event;
+    } catch (error: any) {
+      if (error instanceof HttpException) throw error;
+      throw new InternalServerErrorException(
+        error.message || 'Error editando el evento',
+      );
     }
-
-    // Update
-    event.set({
-      titulo: updateDto.titulo ?? event.titulo,
-      descripcion: updateDto.descripcion ?? event.descripcion,
-      ubicacion: updateDto.ubicacion ?? event.ubicacion,
-      fechas: fechasConTickets,
-      precioEntrada,
-      imagenUrl,
-    });
-
-    await event.save();
-
-    return event;
   }
 
   async remove(id: string, authId: string): Promise<Event> {

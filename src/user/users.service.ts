@@ -4,6 +4,7 @@ import {
   Inject,
   BadRequestException,
   InternalServerErrorException,
+  HttpException,
 } from '@nestjs/common';
 import { Rol, User } from '../interfaces/user.interface';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -46,9 +47,7 @@ export class UsersService {
       const users = await this.userModel.find().exec();
       return users;
     } catch (error) {
-      if (error instanceof BadRequestException) {
-        throw error;
-      }
+      if (error instanceof HttpException) throw error;
       throw new InternalServerErrorException(
         error.message || 'Error obteniendo los usuarios',
       );
