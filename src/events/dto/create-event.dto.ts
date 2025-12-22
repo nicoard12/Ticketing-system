@@ -1,4 +1,4 @@
-import { Transform, Type } from 'class-transformer';
+import { Type } from 'class-transformer';
 import {
   IsString,
   IsNotEmpty,
@@ -7,7 +7,6 @@ import {
   MaxLength,
   IsOptional,
 } from 'class-validator';
-import { EventDate } from 'src/interfaces/event.interface';
 
 export class CreateEventDto {
   @IsString()

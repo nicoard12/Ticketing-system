@@ -13,6 +13,7 @@ import {
   BadRequestException,
   UseGuards,
   Req,
+  Patch,
 } from '@nestjs/common';
 import { EventsService } from './events.service';
 import { CreateEventDto } from './dto/create-event.dto';
@@ -53,7 +54,7 @@ export class EventsController {
   }
 
   @UseGuards(AuthGuard('jwt'))
-  @Put(':id')
+  @Patch(':id')
   @UseInterceptors(FileInterceptor('imagen', { storage: memoryStorage() }))
   update(
     @Param('id') id: string,

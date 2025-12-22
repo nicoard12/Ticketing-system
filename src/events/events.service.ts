@@ -1,4 +1,4 @@
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import 'dotenv/config';
 import {
   Injectable,
@@ -35,12 +35,12 @@ export class EventsService {
       if (user?.rol != Rol.PRODUCTOR)
         throw new BadRequestException(`No tenés permiso para crear eventos.`);
 
+      // -------- Fechas y números --------
       const fechasConTickets = parseFechas(createDto.fechas);
 
       const precioEntrada = toNumber(createDto.precioEntrada, 0);
 
-
-      //Verificar duplicado antes de subir imagen
+      //Verificar titulo repetido
       const exists = await this.eventModel.findOne({
         titulo: createDto.titulo,
       });
@@ -85,6 +85,10 @@ export class EventsService {
   }
 
   async findOne(id: string): Promise<Event> {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new NotFoundException(`Evento con id ${id} no encontrado`);
+    }
+
     const event = await this.eventModel.findById(id).exec();
     if (!event)
       throw new NotFoundException(`Evento con id ${id} no encontrado`);
@@ -108,6 +112,14 @@ export class EventsService {
       throw new ForbiddenException(
         'No tenés permiso para modificar este evento.',
       );
+
+    // -------- Fechas y números --------
+    const fechasConTickets = parseFechas(updateDto.fechas!);
+
+    const precioEntrada = toNumber(
+      updateDto.precioEntrada,
+      event.precioEntrada,
+    );
 
     //Verificar titulo repetido
     if (updateDto.titulo && updateDto.titulo !== event.titulo) {
@@ -135,15 +147,6 @@ export class EventsService {
         throw new BadRequestException('Error al subir la imagen del evento');
       }
     }
-
-    // -------- Fechas y números --------
-    const fechasConTickets = parseFechas(updateDto.fechas!)
-
-    const precioEntrada = toNumber(
-      updateDto.precioEntrada,
-      event.precioEntrada,
-    );
-
 
     // Update
     event.set({

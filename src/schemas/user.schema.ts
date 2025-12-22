@@ -5,5 +5,5 @@ export const UserSchema = new mongoose.Schema({
   nombre: String,
   email: String,
   imagen: String,
-  rol: String,
+  rol: {type: String, enum: ['normal', 'admin', 'productor', 'staff'], default: 'user'},
 });

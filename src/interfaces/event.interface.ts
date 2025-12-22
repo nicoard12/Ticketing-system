@@ -1,6 +1,7 @@
 import { Document } from 'mongoose';
 
 export type EventDate= {
+  _id?: string;
   fecha: Date | string;
   cantidadEntradas: number;
 }
