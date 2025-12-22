@@ -9,10 +9,11 @@ import {
 import { CreateTicketDto } from './dto/create-ticket.dto';
 import { UpdateTicketDto } from './dto/update-ticket.dto';
 import { Model, Types } from 'mongoose';
-import { Ticket } from 'src/interfaces/ticket.interface';
+import { StatusTicket, Ticket } from 'src/interfaces/ticket.interface';
 import { Rol } from 'src/interfaces/user.interface';
 import { UsersService } from 'src/user/users.service';
 import { EventsService } from 'src/events/events.service';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class TicketsService {
@@ -36,25 +37,34 @@ export class TicketsService {
           `Solo usuarios normales pueden comprar tickets.`,
         );
 
-      const event = await this.eventsService.findOne(createTicketDto.eventId);
-
-      if (!event)
-        throw new NotFoundException(
-          `No existe el evento con id ${createTicketDto.eventId}`,
-        );
-      const fecha = event.fechas.find(
-        (f) => f._id!.toString() === createTicketDto.eventDateId,
+      await this.eventsService.restarEntradas(
+        createTicketDto.eventId,
+        createTicketDto.eventDateId,
+        createTicketDto.quantity,
       );
-      if (!fecha)
-        throw new NotFoundException(
-          `No existe tal fecha para el evento ${event.titulo}`,
-        );
 
-      if (fecha.cantidadEntradas < createTicketDto.quantity) {
-        throw new BadRequestException(
-          `No hay suficientes tickets disponibles para la fecha seleccionada. Quedan ${fecha.cantidadEntradas} tickets.`,
-        );
-      }
+      const verificationCode = crypto.randomBytes(16).toString('hex');
+
+      const verificationCodeHash = crypto
+        .createHash('sha256')
+        .update(verificationCode)
+        .digest('hex');
+
+      const verificationCodeExpiresAt = new Date(
+        Date.now() + 10 * 60 * 1000, // 10 minutos
+      );
+
+      const createdTicket = new this.ticketModel({
+        ...createTicketDto,
+        purchaserEmail: user.email,
+        status: StatusTicket.PENDING,
+        verificationCode: verificationCodeHash,
+        verificationCodeExpiresAt,
+      });
+
+      //TODO: enviar email de verificacion
+
+      return createdTicket.save();
     } catch (error: any) {
       if (error instanceof HttpException) throw error;
       throw new InternalServerErrorException(

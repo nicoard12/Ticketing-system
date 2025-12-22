@@ -187,4 +187,28 @@ export class EventsService {
 
     return deletedEvent!;
   }
+
+  async restarEntradas(
+    eventId: string,
+    eventDateId: string,
+    quantity: number,
+  ): Promise<void> {
+    const event = await this.findOne(eventId);
+    if (!event)
+      throw new NotFoundException(`No existe el evento con id ${eventId}`);
+    const fecha = event.fechas.find((f) => f._id!.toString() === eventDateId);
+    if (!fecha)
+      throw new NotFoundException(
+        `No existe tal fecha para el evento ${event.titulo}`,
+      );
+
+    if (fecha.cantidadEntradas < quantity) {
+      throw new BadRequestException(
+        `No hay suficientes tickets disponibles para la fecha seleccionada. Quedan ${fecha.cantidadEntradas} tickets.`,
+      );
+    }
+
+    fecha.cantidadEntradas -= quantity;
+    await event.save();
+  }
 }
