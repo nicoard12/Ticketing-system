@@ -1,9 +1,21 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, UsePipes, ValidationPipe, Req } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+  UsePipes,
+  ValidationPipe,
+  Req,
+} from '@nestjs/common';
 import { TicketsService } from './tickets.service';
 import { CreateTicketDto } from './dto/create-ticket.dto';
-import { UpdateTicketDto } from './dto/update-ticket.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiBearerAuth } from '@nestjs/swagger';
+import { ChangeEmailDto } from './dto/change-email.dto';
 
 @ApiBearerAuth()
 @Controller('tickets')
@@ -28,13 +40,25 @@ export class TicketsController {
     return this.ticketsService.findOne(+id);
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateTicketDto: UpdateTicketDto) {
-    return this.ticketsService.update(+id, updateTicketDto);
+  @UseGuards(AuthGuard('jwt'))
+  @Patch(':id/send-code')
+  updateCode(@Req() req, @Param('id') ticketId: string) {
+    const userId = req.user.sub;
+    return this.ticketsService.sendCode(userId, ticketId);
   }
 
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.ticketsService.remove(+id);
+  @UseGuards(AuthGuard('jwt'))
+  @Patch(':id/email')
+  updateEmail(
+    @Req() req,
+    @Param('id') ticketId: string, 
+    @Body() changeEmailDto: ChangeEmailDto,
+  ) {
+    const userId = req.user.sub;
+    return this.ticketsService.changeEmail(
+      userId,
+      ticketId,
+      changeEmailDto.newEmail,
+    );
   }
 }

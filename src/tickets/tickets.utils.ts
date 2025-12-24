@@ -1,5 +1,8 @@
 import nodemailer from 'nodemailer';
-import { User } from 'src/interfaces/user.interface';
+import * as crypto from 'crypto';
+import { randomInt } from 'crypto';
+
+const CODE_EXPIRATION = 10; // 10 minutos
 
 if (!process.env.MAIL_USER || !process.env.MAIL_PASS) {
   throw new Error('MAIL_USER o MAIL_PASS no configurados');
@@ -13,14 +16,10 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-export async function sendMail(
-  user: User,
-  verificationCode: string,
-  CODE_EXPIRATION: number,
-) {
+export async function sendMail(email: string, verificationCode: string) {
   await transporter.sendMail({
     from: `Ticketing System <${process.env.MAIL_USER}>`,
-    to: user.email,
+    to: email,
     subject: 'Verificá tu email para completar la compra de tu ticket',
     html: `
     <div style="
@@ -71,4 +70,23 @@ export async function sendMail(
     </div>
   `,
   });
+}
+
+export function generateVerificationCode() {
+  const verificationCode = randomInt(100000, 1000000).toString();
+
+  const verificationCodeHash = crypto
+    .createHash('sha256')
+    .update(verificationCode)
+    .digest('hex');
+
+  const verificationCodeExpiresAt = new Date(
+    Date.now() + CODE_EXPIRATION * 60 * 1000,
+  );
+
+  return {
+    verificationCode,
+    verificationCodeHash,
+    verificationCodeExpiresAt,
+  };
 }

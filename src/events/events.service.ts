@@ -192,7 +192,7 @@ export class EventsService {
     eventId: string,
     eventDateId: string,
     quantity: number,
-  ): Promise<void> {
+  ): Promise<Event> {
     const event = await this.findOne(eventId);
     if (!event)
       throw new NotFoundException(`No existe el evento con id ${eventId}`);
@@ -209,6 +209,6 @@ export class EventsService {
     }
 
     fecha.cantidadEntradas -= quantity;
-    await event.save();
+    return await event.save();
   }
 }
