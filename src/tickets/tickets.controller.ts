@@ -71,10 +71,6 @@ export class TicketsController {
     @Body() verifyCodeDto: VerifyCodeDto,
   ) {
     const userId = req.user.sub;
-    return this.ticketsService.verifyCode(
-      userId,
-      ticketId,
-      verifyCodeDto.code,
-    );
+    return this.ticketsService.verifyCode(userId, ticketId, verifyCodeDto.code);
   }
 }

@@ -1,4 +1,4 @@
-import { Model, Types } from 'mongoose';
+import { ClientSession, Model, Types } from 'mongoose';
 import 'dotenv/config';
 import {
   Injectable,
@@ -192,23 +192,54 @@ export class EventsService {
     eventId: string,
     eventDateId: string,
     quantity: number,
+    session: ClientSession,
   ): Promise<Event> {
-    const event = await this.findOne(eventId);
-    if (!event)
-      throw new NotFoundException(`No existe el evento con id ${eventId}`);
-    const fecha = event.fechas.find((f) => f._id!.toString() === eventDateId);
-    if (!fecha)
-      throw new NotFoundException(
-        `No existe tal fecha para el evento ${event.titulo}`,
-      );
+    const event = await this.eventModel
+      .findOne(
+        {
+          _id: eventId,
+          'fechas._id': eventDateId,
+        },
+        { fechas: 1 },
+      )
+      .session(session);
 
-    if (fecha.cantidadEntradas < quantity) {
-      throw new BadRequestException(
-        `No hay suficientes tickets disponibles para la fecha seleccionada. Quedan ${fecha.cantidadEntradas} tickets.`,
-      );
+    if (!event) {
+      throw new NotFoundException('El evento no existe');
     }
 
-    fecha.cantidadEntradas -= quantity;
-    return await event.save();
+    const fecha = event.fechas.find((f) => f._id!.toString() === eventDateId);
+
+    if (!fecha) {
+      throw new NotFoundException('Fecha no encontrada');
+    }
+
+    const now = new Date();
+
+    if (fecha.fecha < now) {
+      throw new BadRequestException('La fecha del evento ya pasó');
+    }
+
+    if (fecha.cantidadEntradas < quantity) {
+      throw new BadRequestException('No hay entradas suficientes');
+    }
+
+    // Update atómico
+    const updatedEvent = await this.eventModel.findOneAndUpdate(
+      {
+        _id: eventId,
+        'fechas._id': eventDateId,
+      },
+      {
+        $inc: { 'fechas.$.cantidadEntradas': -quantity },
+      },
+      { new: true, session },
+    );
+
+    if (!updatedEvent) {
+      throw new BadRequestException('No se pudieron restar las entradas');
+    }
+
+    return updatedEvent;
   }
 }

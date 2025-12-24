@@ -7,18 +7,28 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { CreateTicketDto } from './dto/create-ticket.dto';
-import { Model, Types } from 'mongoose';
+import mongoose, { Model, Types } from 'mongoose';
 import { StatusTicket, Ticket } from 'src/interfaces/ticket.interface';
 import { Rol, User } from 'src/interfaces/user.interface';
 import { UsersService } from 'src/user/users.service';
 import { EventsService } from 'src/events/events.service';
+import { InjectConnection } from '@nestjs/mongoose';
+import { Connection } from 'mongoose';
 
-import { generateVerificationCode, sendMail } from './tickets.utils';
+import {
+  generateQrCode,
+  generateVerificationCode,
+  isTheSameCode,
+  sendQrCode,
+  sendVerificationCode,
+} from './tickets.utils';
 
 @Injectable()
 export class TicketsService {
   constructor(
     @Inject('TICKET_MODEL') private ticketModel: Model<Ticket>,
+    @Inject('DATABASE_CONNECTION')
+    private readonly connection: typeof mongoose,
     private readonly usersService: UsersService,
     private readonly eventsService: EventsService,
   ) {}
@@ -34,18 +44,21 @@ export class TicketsService {
   }
 
   async create(userId: string, createTicketDto: CreateTicketDto) {
+    const session = await this.connection.startSession();
+    session.startTransaction();
+
     try {
       if (!Types.ObjectId.isValid(createTicketDto.eventId)) {
-        throw new NotFoundException(
-          `Evento con id ${createTicketDto.eventId} no encontrado`,
-        );
+        throw new NotFoundException('Evento no encontrado');
       }
+
       const user = await this.verifyNormalUser(userId);
 
       const event = await this.eventsService.restarEntradas(
         createTicketDto.eventId,
         createTicketDto.eventDateId,
         createTicketDto.quantity,
+        session,
       );
 
       const {
@@ -54,44 +67,89 @@ export class TicketsService {
         verificationCodeExpiresAt,
       } = generateVerificationCode();
 
-      const createdTicket = new this.ticketModel({
-        ...createTicketDto,
-        userId: user.idAuth,
-        purchaserEmail: user.email,
-        status: StatusTicket.PENDING,
-        price: event.precioEntrada,
-        verificationCode: verificationCodeHash,
-        verificationCodeExpiresAt,
-      });
+      const [ticket] = await this.ticketModel.create(
+        [
+          {
+            ...createTicketDto,
+            userId: user.idAuth,
+            purchaserEmail: user.email,
+            status: StatusTicket.PENDING,
+            price: event.precioEntrada,
+            verificationCode: verificationCodeHash,
+            verificationCodeExpiresAt,
+          },
+        ],
+        { session },
+      );
 
-      const savedTicket = await createdTicket.save();
+      await session.commitTransaction();
 
-      sendMail(user.email, verificationCode).catch(
-        (
-          err, //sin await para no bloquear el flujo y dar una mejor experiencia al usuario
-        ) => console.error('Error enviando mail:', err),
+      // mail afuera de la transacción
+      sendVerificationCode(user.email, verificationCode).catch((err) =>
+        console.error('Error enviando mail:', err),
       );
 
       return {
-        _id: savedTicket._id,
-        event: event,
-        eventDateId: savedTicket.eventDateId,
-        quantity: savedTicket.quantity,
-        purchaserEmail: savedTicket.purchaserEmail,
-        status: savedTicket.status,
-        price: savedTicket.price,
+        _id: ticket._id,
+        event,
+        eventDateId: ticket.eventDateId,
+        quantity: ticket.quantity,
+        purchaserEmail: ticket.purchaserEmail,
+        status: ticket.status,
+        price: ticket.price,
       };
-    } catch (error: any) {
-      if (error instanceof HttpException) throw error;
-      throw new InternalServerErrorException(
-        error.message || 'Error creando el ticket',
-      );
+    } catch (error) {
+      console.log('Error, ', error);
+      await session.abortTransaction();
+      throw error instanceof HttpException
+        ? error
+        : new InternalServerErrorException('Error creando el ticket');
+    } finally {
+      session.endSession();
     }
   }
 
   async verifyCode(userId: string, ticketId: string, code: number) {
     try {
-    } catch (error) {}
+      const user = await this.verifyNormalUser(userId);
+
+      const ticket = await this.ticketModel.findOne({
+        _id: ticketId,
+        userId: user.idAuth, // Validar que el ticket pertenece al usuario autenticado
+      });
+      if (!ticket) {
+        throw new BadRequestException(
+          'El ticket no pertenece al usuario autenticado o no existe.',
+        );
+      }
+      const currentTime = new Date();
+      if (ticket.verificationCodeExpiresAt < currentTime) {
+        throw new BadRequestException('El código de verificación ha expirado.');
+      }
+      if (!isTheSameCode(code.toString(), ticket.verificationCode)) {
+        throw new BadRequestException('Código de verificación incorrecto.');
+      }
+
+      ticket.set({ status: StatusTicket.ACTIVE });
+
+      const qrCode = generateQrCode();
+      ticket.set({ qrCode });
+
+      await ticket.save();
+
+      sendQrCode(ticket.purchaserEmail, qrCode).catch(
+        (
+          err, //sin await para no bloquear el flujo y dar una mejor experiencia al usuario
+        ) => console.error('Error enviando mail:', err),
+      );
+
+      return true;
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      throw new InternalServerErrorException(
+        error.message || 'Error verificando el código',
+      );
+    }
   }
 
   async sendCode(
@@ -126,11 +184,12 @@ export class TicketsService {
         );
       }
 
-      sendMail(updatedTicket.purchaserEmail, verificationCode).catch((err) =>
-        console.error('Error enviando mail:', err),
-      );
+      sendVerificationCode(
+        updatedTicket.purchaserEmail,
+        verificationCode,
+      ).catch((err) => console.error('Error enviando mail:', err));
 
-      return updatedTicket;
+      return true;
     } catch (error: any) {
       if (error instanceof HttpException) throw error;
       throw new InternalServerErrorException(
@@ -160,7 +219,7 @@ export class TicketsService {
 
       await this.sendCode(userId, ticketId, user);
 
-      return updatedTicket;
+      return true;
     } catch (error: any) {
       if (error instanceof HttpException) throw error;
       throw new InternalServerErrorException(

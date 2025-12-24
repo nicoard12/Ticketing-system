@@ -2,8 +2,9 @@ import { Document } from 'mongoose';
 
 export enum StatusTicket {
   PENDING = 'pending_verification',
-  VERIFIED = 'verified',
-  CANCELLED = 'cancelled',
+  ACTIVE = 'active',
+  TRANSFERRED = 'transferred',
+  USED = 'used',
 }
 
 export interface Ticket extends Document {
@@ -14,7 +15,7 @@ export interface Ticket extends Document {
   readonly purchaserEmail: string;
   readonly status: StatusTicket;
   readonly price: number;
-  readonly qrCodeUrl: string;
+  readonly qrCode: string;
   readonly verificationCode: string;
-  readonly verificationCodeExpiresAt: string;
+  readonly verificationCodeExpiresAt: Date;
 }
