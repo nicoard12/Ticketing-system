@@ -89,15 +89,24 @@ export class TicketsService {
     }
   }
 
-  async sendCode(userId: string, ticketId: string, userObject: User | null = null) {
+  async verifyCode(userId: string, ticketId: string, code: number) {
     try {
-      const user = userObject ?? await this.verifyNormalUser(userId);
+    } catch (error) {}
+  }
+
+  async sendCode(
+    userId: string,
+    ticketId: string,
+    userObject: User | null = null,
+  ) {
+    try {
+      const user = userObject ?? (await this.verifyNormalUser(userId));
 
       const {
         verificationCode,
         verificationCodeHash,
         verificationCodeExpiresAt,
-      } = generateVerificationCode(); 
+      } = generateVerificationCode();
 
       const updatedTicket = await this.ticketModel.findOneAndUpdate(
         {
@@ -167,5 +176,4 @@ export class TicketsService {
   findOne(id: number) {
     return `This action returns a #${id} ticket`;
   }
-
 }
