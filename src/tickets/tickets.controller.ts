@@ -31,6 +31,13 @@ export class TicketsController {
     return this.ticketsService.create(userId, createTicketDto);
   }
 
+  @UseGuards(AuthGuard('jwt'))
+  @Get('/user')
+  myTickets(@Req() req) {
+    const userId = req.user.sub;
+    return this.ticketsService.myTickets(userId);
+  }
+
   @Get()
   findAll() {
     return this.ticketsService.findAll();

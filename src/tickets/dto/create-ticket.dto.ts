@@ -8,7 +8,7 @@ import {
 export class CreateTicketDto {
   @IsString()
   @IsNotEmpty()
-  eventId: string;
+  event: string;
 
   @IsString()
   @IsNotEmpty()

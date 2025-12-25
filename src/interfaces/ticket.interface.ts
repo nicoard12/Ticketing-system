@@ -18,4 +18,5 @@ export interface Ticket extends Document {
   readonly qrCode: string;
   readonly verificationCode: string;
   readonly verificationCodeExpiresAt: Date;
+  readonly dateCreated: Date;
 }

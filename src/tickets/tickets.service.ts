@@ -46,14 +46,14 @@ export class TicketsService {
     session.startTransaction();
 
     try {
-      if (!Types.ObjectId.isValid(createTicketDto.eventId)) {
+      if (!Types.ObjectId.isValid(createTicketDto.event)) {
         throw new NotFoundException('Evento no encontrado');
       }
 
       const user = await this.verifyNormalUser(userId);
 
       const event = await this.eventsService.restarEntradas(
-        createTicketDto.eventId,
+        createTicketDto.event,
         createTicketDto.eventDateId,
         createTicketDto.quantity,
         session,
@@ -227,6 +227,19 @@ export class TicketsService {
       if (error instanceof HttpException) throw error;
       throw new InternalServerErrorException(
         error.message || 'Error cambiando el email del ticket',
+      );
+    }
+  }
+
+  async myTickets(userId: string) {
+    try {
+      const user = await this.verifyNormalUser(userId);
+      const tickets = await this.ticketModel.find({ userId: user.idAuth }).select('-qrCode -verificationCode -verificationCodeExpiresAt')
+      return tickets;
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      throw new InternalServerErrorException(
+        error.message || 'Error obteniendo los tickets del usuario',
       );
     }
   }
