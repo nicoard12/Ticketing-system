@@ -12,8 +12,6 @@ import { StatusTicket, Ticket } from 'src/interfaces/ticket.interface';
 import { Rol, User } from 'src/interfaces/user.interface';
 import { UsersService } from 'src/user/users.service';
 import { EventsService } from 'src/events/events.service';
-import { InjectConnection } from '@nestjs/mongoose';
-import { Connection } from 'mongoose';
 
 import {
   generateQrCode,
@@ -122,6 +120,11 @@ export class TicketsService {
           'El ticket no pertenece al usuario autenticado o no existe.',
         );
       }
+      if (ticket.status !== StatusTicket.PENDING) {
+        throw new BadRequestException(
+          `Tu email ya fue verificado, encontrarás tu código QR en tu email.`,
+        );
+      }
       const currentTime = new Date();
       if (ticket.verificationCodeExpiresAt < currentTime) {
         throw new BadRequestException('El código de verificación ha expirado.');
@@ -137,7 +140,7 @@ export class TicketsService {
 
       await ticket.save();
 
-      sendQrCode(ticket.purchaserEmail, qrCode).catch(
+      sendQrCode(ticket.purchaserEmail, ticket.quantity, qrCode).catch(
         (
           err, //sin await para no bloquear el flujo y dar una mejor experiencia al usuario
         ) => console.error('Error enviando mail:', err),

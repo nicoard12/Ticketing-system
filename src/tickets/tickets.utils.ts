@@ -104,7 +104,7 @@ export function generateQrCode(): string{
   return randomUUID();
 }
 
-export async function sendQrCode(email: string, qrToken: string): Promise<string> {
+export async function sendQrCode(email: string, quantity: number, qrToken: string): Promise<string> {
   const qrDataUrl = await QRCode.toDataURL(qrToken);
 
   const base64 = qrDataUrl.split(',')[1];
@@ -114,12 +114,52 @@ export async function sendQrCode(email: string, qrToken: string): Promise<string
     from: `Ticketing System <${process.env.MAIL_USER}>`,
     to: email,
     subject: 'Tu entrada 🎟️',
-    html: '<p>Adjuntamos tu QR</p>',
+    html: `
+    <div style="
+      font-family: Arial, Helvetica, sans-serif;
+      background-color: #f5f7fa;
+      padding: 24px;
+    ">
+      <div style="
+        max-width: 480px;
+        margin: auto;
+        background: #ffffff;
+        border-radius: 8px;
+        padding: 24px;
+        text-align: center;
+      ">
+        <h1 style="margin-bottom: 8px;">🎟️ Ticketing System</h1>
+
+        <p style="font-size: 15px; color: #555;">
+          ¡Gracias por tu compra!
+        </p>
+
+        <p style="font-size: 16px; margin-top: 24px;">
+          Tu entrada es válida para ${quantity} ${quantity === 1 ? 'persona' : 'personas'}.
+        </p>
+
+        <p style="font-size: 16px;">
+          Escanea el código QR adjunto para acceder al evento.
+        </p>
+
+        <div style="
+          margin: 24px 0;
+          padding: 16px;
+          background: #f9f9f9;
+          border-radius: 8px;
+        ">
+          <img src="cid:ticket-qr" alt="Código QR de la entrada" style="max-width: 200px; height: auto;" />
+        </div>
+
+      </div>
+    </div>
+  `,
     attachments: [
       {
         filename: 'ticket-qr.png',
         content: qrBuffer,
         contentType: 'image/png',
+        cid: 'ticket-qr',
       },
     ],
   });
