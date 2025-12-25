@@ -9,7 +9,7 @@ export const TicketSchema = new mongoose.Schema({
   purchaserEmail: String,
   status: {
     type: String,
-    enum: ['pending_verification', 'active', 'transferred', 'used'],
+    enum: ['pending_verification', 'active', 'used'],
   },
   price: Number,
   qrCode: String,

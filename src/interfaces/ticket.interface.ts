@@ -3,7 +3,6 @@ import { Document } from 'mongoose';
 export enum StatusTicket {
   PENDING = 'pending_verification',
   ACTIVE = 'active',
-  TRANSFERRED = 'transferred',
   USED = 'used',
 }
 
