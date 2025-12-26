@@ -336,11 +336,11 @@ export class TicketsService {
         }
 
         const ticketObj = updatedTicket.toObject();
-        const { _id, ...ticketObjWithoutId } = ticketObj;
+        const { _id, qrCode, ...ticketObjWithoutIdAndQr } = ticketObj;
         await this.ticketModel.create(
           [
             {
-              ...ticketObjWithoutId,
+              ...ticketObjWithoutIdAndQr,
               userId: transferUser.idAuth,
               originalUserId: user.idAuth,
               quantity: transferTicketDto.quantity,
