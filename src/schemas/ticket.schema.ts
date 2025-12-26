@@ -18,11 +18,11 @@ export const TicketSchema = new mongoose.Schema({
   dateCreated: { type: Date, default: Date.now },
 });
 
-TicketSchema.pre(/^find/, function (
-  this: mongoose.Query<any, any>,
-  next,
-) {
-  this.populate('event');
-  next();
-});
+  // TicketSchema.pre(/^find/, function (
+  //   this: mongoose.Query<any, any>,
+  //   next,
+  // ) {
+  //   this.populate('event');
+  //   next();
+  // });
 

@@ -29,6 +29,12 @@ export class UsersController {
     return this.usersService.getAllUsers(AuthId)
   }
 
+  @UseGuards(AuthGuard('jwt'))
+  @Get(":id")
+  async getUser(@Param('id') idUser: string){
+    return this.usersService.find(idUser)
+  }
+
   @Post()
   async create(@Body() createUserDto: CreateUserDto) {
     const user = await this.usersService.find(createUserDto.idAuth);

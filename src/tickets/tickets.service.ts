@@ -32,7 +32,7 @@ export class TicketsService {
     private readonly eventsService: EventsService,
   ) {}
 
-  async verifyNormalUser(userId: string) {
+  private async verifyNormalUser(userId: string) {
     const user = await this.usersService.find(userId);
     if (!user) throw new NotFoundException(`Usuario no encontrado`);
     if (user.rol != Rol.NORMAL)
@@ -104,7 +104,7 @@ export class TicketsService {
         ? error
         : new InternalServerErrorException('Error creando el ticket');
     } finally {
-      session.endSession();
+      await session.endSession();
     }
   }
 
@@ -239,7 +239,9 @@ export class TicketsService {
         .find({
           $or: [{ userId: user.idAuth }, { originalUserId: user.idAuth }],
         })
-        .select('-qrCode -verificationCode -verificationCodeExpiresAt');
+        .select('-qrCode -verificationCode -verificationCodeExpiresAt')
+        .populate('event');
+
       return tickets;
     } catch (error) {
       if (error instanceof HttpException) throw error;
@@ -249,23 +251,123 @@ export class TicketsService {
     }
   }
 
+  private async getValidTransferUser(email: string, userId: string) {
+    const user = await this.usersService.findByEmail(email);
+
+    if (!user)
+      throw new NotFoundException(
+        'El email debe estar ligado a un usuario registrado',
+      );
+
+    if (user.rol !== Rol.NORMAL)
+      throw new BadRequestException(
+        'El usuario no debe tener permisos especiales',
+      );
+
+    if (user.idAuth == userId) {
+      throw new BadRequestException(
+        'No podes transferirte a vos mismo los tickets',
+      );
+    }
+
+    return user;
+  }
+
   async transferTicket(
     userId: string,
     ticketId: string,
     transferTicketDto: TransferTicketDto,
   ) {
+    const session = await this.connection.startSession();
+    session.startTransaction();
     try {
       const user = await this.verifyNormalUser(userId);
-      //TODO: Buscar el ticket filtrando por id de ticket e id de user; 
-      // verificar que la cantidad sea menor o igual que la quantity, 
-      // si es igual a la quantity no creo nuevo documento ticket, uso el mismo; 
-      // buscar user para transferir por email, si no existe devolver error con msj correspondiente;
-      //Nuevo documento ticket con quantity correspondiente y status en pendiente.
+      const transferUser = await this.getValidTransferUser(
+        transferTicketDto.email,
+        user.idAuth,
+      );
+
+      const {
+        verificationCode,
+        verificationCodeHash,
+        verificationCodeExpiresAt,
+      } = generateVerificationCode();
+
+      const fullTransfer = await this.ticketModel.findOneAndUpdate(
+        {
+          _id: ticketId,
+          userId: user.idAuth,
+          originalUserId: { $exists: false },
+          quantity: transferTicketDto.quantity, //Si transifere TODOS los tickets, actualizo el mismo documento
+        },
+        {
+          $set: {
+            originalUserId: user.idAuth,
+            userId: transferUser.idAuth,
+            status: StatusTicket.PENDING,
+            purchaserEmail: transferUser.email,
+            verificationCode: verificationCodeHash,
+            verificationCodeExpiresAt,
+            qrCode: null
+          },
+        },
+        { new: true, session },
+      );
+
+      if (!fullTransfer) {
+        //No transfiere todos los tickets, resto cantidad a doc actual y creo nuevo ticket
+        const updatedTicket = await this.ticketModel.findOneAndUpdate(
+          {
+            _id: ticketId,
+            userId: user.idAuth,
+            originalUserId: { $exists: false },
+            quantity: { $gt: transferTicketDto.quantity }, //Verificar que la cantidad de tickets sea mayor a la que va a transferir
+          },
+          {
+            $inc: { quantity: -transferTicketDto.quantity },
+          },
+          { new: true, session },
+        );
+
+        if (!updatedTicket) {
+          throw new BadRequestException(
+            'La cantidad de tickets tiene que ser menor o igual a las que compraste',
+          );
+        }
+
+        const ticketObj = updatedTicket.toObject();
+        const { _id, ...ticketObjWithoutId } = ticketObj;
+        await this.ticketModel.create(
+          [
+            {
+              ...ticketObjWithoutId,
+              userId: transferUser.idAuth,
+              originalUserId: user.idAuth,
+              quantity: transferTicketDto.quantity,
+              purchaserEmail: transferUser.email,
+              status: StatusTicket.PENDING,
+              verificationCode: verificationCodeHash,
+              verificationCodeExpiresAt,
+              dateCreated: Date.now(),
+            },
+          ],
+          { session },
+        );
+      }
+      await session.commitTransaction();
+
+      sendVerificationCode(transferUser.email, verificationCode).catch((err) =>
+        console.error('Error enviando mail:', err),
+      );
+      return true;
     } catch (error) {
+      await session.abortTransaction();
       if (error instanceof HttpException) throw error;
       throw new InternalServerErrorException(
-        error.message || 'Error obteniendo los tickets del usuario',
+        error.message || 'Error al transferir el ticket',
       );
+    } finally {
+      await session.endSession();
     }
   }
 
