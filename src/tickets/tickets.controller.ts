@@ -17,6 +17,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { ApiBearerAuth } from '@nestjs/swagger';
 import { ChangeEmailDto } from './dto/change-email.dto';
 import { VerifyCodeDto } from './dto/verify-code.dto';
+import { TransferTicketDto } from './dto/transfer-ticket.dto';
 
 @ApiBearerAuth()
 @Controller('tickets')
@@ -79,5 +80,20 @@ export class TicketsController {
   ) {
     const userId = req.user.sub;
     return this.ticketsService.verifyCode(userId, ticketId, verifyCodeDto.code);
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Post(':id/transfer')
+  transferTicket(
+    @Req() req,
+    @Param('id') ticketId: string,
+    @Body() transferTicketDto: TransferTicketDto,
+  ) {
+    const userId = req.user.sub;
+    return this.ticketsService.transferTicket(
+      userId,
+      ticketId,
+      transferTicketDto,
+    );
   }
 }

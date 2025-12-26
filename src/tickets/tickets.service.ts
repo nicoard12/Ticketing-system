@@ -20,6 +20,7 @@ import {
   sendQrCode,
   sendVerificationCode,
 } from './tickets.utils';
+import { TransferTicketDto } from './dto/transfer-ticket.dto';
 
 @Injectable()
 export class TicketsService {
@@ -234,8 +235,32 @@ export class TicketsService {
   async myTickets(userId: string) {
     try {
       const user = await this.verifyNormalUser(userId);
-      const tickets = await this.ticketModel.find({ userId: user.idAuth }).select('-qrCode -verificationCode -verificationCodeExpiresAt')
+      const tickets = await this.ticketModel
+        .find({
+          $or: [{ userId: user.idAuth }, { originalUserId: user.idAuth }],
+        })
+        .select('-qrCode -verificationCode -verificationCodeExpiresAt');
       return tickets;
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      throw new InternalServerErrorException(
+        error.message || 'Error obteniendo los tickets del usuario',
+      );
+    }
+  }
+
+  async transferTicket(
+    userId: string,
+    ticketId: string,
+    transferTicketDto: TransferTicketDto,
+  ) {
+    try {
+      const user = await this.verifyNormalUser(userId);
+      //TODO: Buscar el ticket filtrando por id de ticket e id de user; 
+      // verificar que la cantidad sea menor o igual que la quantity, 
+      // si es igual a la quantity no creo nuevo documento ticket, uso el mismo; 
+      // buscar user para transferir por email, si no existe devolver error con msj correspondiente;
+      //Nuevo documento ticket con quantity correspondiente y status en pendiente.
     } catch (error) {
       if (error instanceof HttpException) throw error;
       throw new InternalServerErrorException(
