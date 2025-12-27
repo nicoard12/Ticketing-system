@@ -174,6 +174,7 @@ export class TicketsService {
         {
           _id: ticketId,
           userId: user.idAuth, // Validar que el ticket pertenece al usuario autenticado
+          status: StatusTicket.PENDING
         },
         {
           verificationCode: verificationCodeHash,
@@ -297,7 +298,7 @@ export class TicketsService {
         {
           _id: ticketId,
           userId: user.idAuth,
-          originalUserId: { $exists: false },
+          originalUserId: { $exists: false }, //No debe existir, si existiera, significa que es ticket transferido, no se debe volver a transferir
           quantity: transferTicketDto.quantity, //Si transifere TODOS los tickets, actualizo el mismo documento
         },
         {
@@ -347,8 +348,7 @@ export class TicketsService {
               purchaserEmail: transferUser.email,
               status: StatusTicket.PENDING,
               verificationCode: verificationCodeHash,
-              verificationCodeExpiresAt,
-              dateCreated: Date.now(),
+              verificationCodeExpiresAt
             },
           ],
           { session },
