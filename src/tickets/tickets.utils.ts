@@ -2,6 +2,8 @@ import nodemailer from 'nodemailer';
 import * as crypto from 'crypto';
 import { randomInt, randomUUID } from 'crypto';
 import QRCode from 'qrcode';
+import { Ticket } from 'src/interfaces/ticket.interface';
+import { Event } from 'src/interfaces/event.interface';
 
 const CODE_EXPIRATION = 10; // 10 minutos
 
@@ -104,8 +106,12 @@ export function generateQrCode(): string{
   return randomUUID();
 }
 
-export async function sendQrCode(email: string, quantity: number, qrToken: string): Promise<string> {
+export async function sendQrCode(qrToken: string, ticket: Ticket, event: Event): Promise<string> {
   const qrDataUrl = await QRCode.toDataURL(qrToken);
+  const email= ticket.purchaserEmail
+  const quantity= ticket.quantity
+  const eventTitle= event.titulo
+  const eventDate= event.fechas.find(f => f._id?.toString() === ticket.eventDateId.toString())?.fecha;
 
   const base64 = qrDataUrl.split(',')[1];
   const qrBuffer = Buffer.from(base64, 'base64');
@@ -128,7 +134,7 @@ export async function sendQrCode(email: string, quantity: number, qrToken: strin
         padding: 24px;
         text-align: center;
       ">
-        <h1 style="margin-bottom: 8px;">🎟️ Ticketing System</h1>
+        <h1 style="margin-bottom: 8px;">🎟️ ${eventTitle} ${eventDate ? new Date(eventDate).toLocaleDateString() : 'Fecha no disponible'}</h1>
 
         <p style="font-size: 15px; color: #555;">
           ¡Gracias por tu compra!

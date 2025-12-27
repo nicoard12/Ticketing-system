@@ -115,7 +115,7 @@ export class TicketsService {
       const ticket = await this.ticketModel.findOne({
         _id: ticketId,
         userId: user.idAuth, // Validar que el ticket pertenece al usuario autenticado
-      });
+      })
       if (!ticket) {
         throw new BadRequestException(
           'El ticket no pertenece al usuario autenticado o no existe.',
@@ -141,7 +141,8 @@ export class TicketsService {
 
       await ticket.save();
 
-      sendQrCode(ticket.purchaserEmail, ticket.quantity, qrCode).catch(
+      const event= await this.eventsService.findOne(ticket.event)
+      sendQrCode(qrCode, ticket, event).catch(
         (
           err, //sin await para no bloquear el flujo y dar una mejor experiencia al usuario
         ) => console.error('Error enviando mail:', err),
