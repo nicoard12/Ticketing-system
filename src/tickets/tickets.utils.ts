@@ -102,16 +102,22 @@ export function isTheSameCode(code: string, codeHash: string): boolean {
   return hashedCode === codeHash;
 }
 
-export function generateQrCode(): string{
+export function generateQrCode(): string {
   return randomUUID();
 }
 
-export async function sendQrCode(qrToken: string, ticket: Ticket, event: Event): Promise<string> {
+export async function sendQrCode(
+  qrToken: string,
+  ticket: Ticket,
+  event: Event,
+): Promise<string> {
   const qrDataUrl = await QRCode.toDataURL(qrToken);
-  const email= ticket.purchaserEmail
-  const quantity= ticket.quantity
-  const eventTitle= event.titulo
-  const eventDate= event.fechas.find(f => f._id?.toString() === ticket.eventDateId.toString())?.fecha;
+  const email = ticket.purchaserEmail;
+  const quantity = ticket.quantity;
+  const eventTitle = event.titulo;
+  const eventDate = event.fechas.find(
+    (f) => f._id?.toString() === ticket.eventDateId.toString(),
+  )?.fecha;
 
   const base64 = qrDataUrl.split(',')[1];
   const qrBuffer = Buffer.from(base64, 'base64');
@@ -172,3 +178,15 @@ export async function sendQrCode(qrToken: string, ticket: Ticket, event: Event):
 
   return qrToken;
 }
+
+const HOURS_AGO= 4
+
+export function isPast(eventDate: Date | string) {
+  const now = new Date();
+  const hoursAgo = new Date(now.getTime() - HOURS_AGO * 60 * 60 * 1000);
+
+  const event = new Date(eventDate);
+
+  return event < hoursAgo;
+}
+

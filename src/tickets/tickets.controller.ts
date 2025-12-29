@@ -18,6 +18,7 @@ import { ApiBearerAuth } from '@nestjs/swagger';
 import { ChangeEmailDto } from './dto/change-email.dto';
 import { VerifyCodeDto } from './dto/verify-code.dto';
 import { TransferTicketDto } from './dto/transfer-ticket.dto';
+import { ValidateQRDto } from './dto/validate-qr.dto';
 
 @ApiBearerAuth()
 @Controller('tickets')
@@ -95,5 +96,12 @@ export class TicketsController {
       ticketId,
       transferTicketDto,
     );
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Patch('validate-qr')
+  validateQR(@Req() req, @Body() validateQRDto: ValidateQRDto) {
+    const userId = req.user.sub;
+    return this.ticketsService.validateQR(userId, validateQRDto);
   }
 }

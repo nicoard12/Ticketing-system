@@ -16,11 +16,13 @@ import { EventsService } from 'src/events/events.service';
 import {
   generateQrCode,
   generateVerificationCode,
+  isPast,
   isTheSameCode,
   sendQrCode,
   sendVerificationCode,
 } from './tickets.utils';
 import { TransferTicketDto } from './dto/transfer-ticket.dto';
+import { ValidateQRDto } from './dto/validate-qr.dto';
 
 @Injectable()
 export class TicketsService {
@@ -115,7 +117,7 @@ export class TicketsService {
       const ticket = await this.ticketModel.findOne({
         _id: ticketId,
         userId: user.idAuth, // Validar que el ticket pertenece al usuario autenticado
-      })
+      });
       if (!ticket) {
         throw new BadRequestException(
           'El ticket no pertenece al usuario autenticado o no existe.',
@@ -141,7 +143,7 @@ export class TicketsService {
 
       await ticket.save();
 
-      const event= await this.eventsService.findOne(ticket.event)
+      const event = await this.eventsService.findOne(ticket.event);
       sendQrCode(qrCode, ticket, event).catch(
         (
           err, //sin await para no bloquear el flujo y dar una mejor experiencia al usuario
@@ -175,7 +177,7 @@ export class TicketsService {
         {
           _id: ticketId,
           userId: user.idAuth, // Validar que el ticket pertenece al usuario autenticado
-          status: StatusTicket.PENDING
+          status: StatusTicket.PENDING,
         },
         {
           verificationCode: verificationCodeHash,
@@ -310,7 +312,7 @@ export class TicketsService {
             purchaserEmail: transferUser.email,
             verificationCode: verificationCodeHash,
             verificationCodeExpiresAt,
-            qrCode: null
+            qrCode: null,
           },
         },
         { new: true, session },
@@ -349,7 +351,7 @@ export class TicketsService {
               purchaserEmail: transferUser.email,
               status: StatusTicket.PENDING,
               verificationCode: verificationCodeHash,
-              verificationCodeExpiresAt
+              verificationCodeExpiresAt,
             },
           ],
           { session },
@@ -369,6 +371,66 @@ export class TicketsService {
       );
     } finally {
       await session.endSession();
+    }
+  }
+
+  async validateQR(userId: string, validateQRDto: ValidateQRDto) {
+    try {
+      const qrCode = validateQRDto.qrCode;
+      const eventId = validateQRDto.eventId;
+      const eventDateId = validateQRDto.eventDateId;
+      const user = await this.usersService.find(userId);
+      if (!user) throw new NotFoundException(`Usuario no encontrado`);
+      if (user.rol != Rol.STAFF)
+        throw new BadRequestException(
+          `Solo usuarios staff pueden realizar esta acción.`,
+        );
+
+      const ticket = await this.ticketModel.findOne({ qrCode });
+      if (!ticket)
+        return {
+          isValid: false,
+          message: 'El código QR proporcionado no pertenece a ningún ticket.',
+        };
+      if (ticket.event !== eventId)
+        return {
+          isValid: false,
+          message: 'El ticket pertenece a otro evento.',
+        };
+      if (ticket.eventDateId !== eventDateId)
+        return {
+          isValid: false,
+          message: 'El ticket es para otra fecha del mismo evento.',
+        };
+
+      const event = await this.eventsService.findOne(eventId);
+      const eventDate = event.fechas.find(
+        (f) => f._id?.toString() === eventDateId.toString(),
+      )?.fecha;
+      if (isPast(eventDate!))
+        throw new BadRequestException(
+          'No podes validar QRs antes de la fecha del evento.',
+        );
+
+      if (ticket.status == StatusTicket.USED)
+        return { isValid: false, message: 'El ticket ya fue usado.' };
+
+      ticket.set({
+        status: StatusTicket.USED,
+      });
+
+      await ticket.save();
+
+      return {
+        isValid: true,
+        message: 'Ticket válido.',
+        quantity: ticket.quantity,
+      };
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      throw new InternalServerErrorException(
+        error.message || 'Error al transferir el ticket',
+      );
     }
   }
 
