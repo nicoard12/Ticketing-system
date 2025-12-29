@@ -392,12 +392,12 @@ export class TicketsService {
           isValid: false,
           message: 'El código QR proporcionado no pertenece a ningún ticket.',
         };
-      if (ticket.event !== eventId)
+      if (ticket.event.toString() !== eventId.toString())
         return {
           isValid: false,
           message: 'El ticket pertenece a otro evento.',
         };
-      if (ticket.eventDateId !== eventDateId)
+      if (ticket.eventDateId.toString() !== eventDateId.toString())
         return {
           isValid: false,
           message: 'El ticket es para otra fecha del mismo evento.',
