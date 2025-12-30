@@ -74,7 +74,7 @@ export class TicketsService {
             ...createTicketDto,
             userId: user.idAuth,
             purchaserEmail: user.email,
-            status: StatusTicket.PENDING_PAYMENT,
+            status: StatusTicket.PENDING,
             price: event.precioEntrada,
             verificationCode: verificationCodeHash,
             verificationCodeExpiresAt,
@@ -85,10 +85,7 @@ export class TicketsService {
 
       await session.commitTransaction();
 
-      //pago fuera de la transacción
-      
-
-      // envio de mail fuera de la transacción
+      // mail afuera de la transacción
       sendVerificationCode(user.email, verificationCode).catch((err) =>
         console.error('Error enviando mail:', err),
       );
@@ -124,12 +121,6 @@ export class TicketsService {
       if (!ticket) {
         throw new BadRequestException(
           'El ticket no pertenece al usuario autenticado o no existe.',
-        );
-      }
-
-      if (ticket.status == StatusTicket.PENDING_PAYMENT) {
-        throw new BadRequestException(
-          `Todavía no pagaste tus tickets`,
         );
       }
       if (ticket.status !== StatusTicket.PENDING) {
