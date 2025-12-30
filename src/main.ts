@@ -7,11 +7,13 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   //Habilitar CORS para permitir requests desde el frontend
-  app.enableCors({
-    origin: 'https://ticketsys-rose.vercel.app',
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-    credentials: true,
-  });
+  // app.enableCors({
+  //   origin: 'https://ticketsys-rose.vercel.app',
+  //   methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+  //   credentials: true,
+  // });
+
+  app.enableCors()
 
   // Configuración de Swagger (OpenAPI)
   const config = new DocumentBuilder()

@@ -1,6 +1,7 @@
 import { Document } from 'mongoose';
 
 export enum StatusTicket {
+  PENDING_PAYMENT= "pending_payment",
   PENDING = 'pending_verification',
   ACTIVE = 'active',
   USED = 'used',

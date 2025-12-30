@@ -33,6 +33,7 @@
     "cloudinary": "^2.7.0",
     "dotenv": "^17.2.3",
     "jwks-rsa": "^3.2.0",
+    "mercadopago": "^2.11.0",
     "mongoose": "^8.20.4",
     "nodemailer": "^7.0.12",
     "passport": "^0.7.0",

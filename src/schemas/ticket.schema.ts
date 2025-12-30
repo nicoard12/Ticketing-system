@@ -9,7 +9,7 @@ export const TicketSchema = new mongoose.Schema({
   purchaserEmail: String,
   status: {
     type: String,
-    enum: ['pending_verification', 'active', 'used'],
+    enum: ['pending_payment', 'pending_verification', 'active', 'used'],
   },
   price: Number,
   qrCode: String,
@@ -18,11 +18,10 @@ export const TicketSchema = new mongoose.Schema({
   dateCreated: { type: Date, default: Date.now },
 });
 
-  // TicketSchema.pre(/^find/, function (
-  //   this: mongoose.Query<any, any>,
-  //   next,
-  // ) {
-  //   this.populate('event');
-  //   next();
-  // });
-
+// TicketSchema.pre(/^find/, function (
+//   this: mongoose.Query<any, any>,
+//   next,
+// ) {
+//   this.populate('event');
+//   next();
+// });
