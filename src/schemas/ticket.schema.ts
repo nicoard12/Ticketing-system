@@ -11,6 +11,7 @@ export const TicketSchema = new mongoose.Schema({
     type: String,
     enum: ['pending_payment', 'pending_verification', 'active', 'used'],
   },
+  payment_url: String,
   price: Number,
   qrCode: String,
   verificationCode: String,

@@ -15,6 +15,7 @@ export interface Ticket extends Document {
   readonly quantity: number;
   readonly purchaserEmail: string;
   readonly status: StatusTicket;
+  readonly payment_url: string;
   readonly price: number;
   readonly qrCode: string;
   readonly verificationCode: string;
