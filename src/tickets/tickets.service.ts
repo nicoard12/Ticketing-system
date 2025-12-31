@@ -111,7 +111,7 @@ export class TicketsService {
   async confirmPayment(ticketId: string, paymentId: number) {
     try {
       const ticket = await this.ticketModel.findById(ticketId);
-      if (!ticket) console.log('REEMBOLSAR'); //TODO: Reembolsar creo que se usa paymentId
+      if (!ticket || ticket.paymentExpiresAt <= new Date()) console.log('REEMBOLSAR'); //TODO: Reembolsar creo que se usa paymentId
 
       if (ticket!.status !== StatusTicket.PENDING_PAYMENT) return true
 
@@ -475,11 +475,9 @@ export class TicketsService {
         status: StatusTicket.PENDING_PAYMENT,
         paymentExpiresAt: { $gt: new Date() },
         payment_url: { $exists: true, $nin: [null, ''] },
-      });
+      }).populate('event');
 
-      console.log(ticketPP)
-
-      return ticketPP;
+      return ticketPP
     } catch (error) {
       if (error instanceof HttpException) throw error;
       throw new InternalServerErrorException(
