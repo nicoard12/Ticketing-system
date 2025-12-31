@@ -119,7 +119,7 @@ export class TicketsService {
   async confirmPayment(ticketId: string, paymentId: number) {
     try {
       const ticket = await this.ticketModel.findById(ticketId);
-      if (!ticket || ticket.paymentExpiresAt <= new Date()) console.log('REEMBOLSAR'); //TODO: Reembolsar creo que se usa paymentId
+      if (!ticket || ticket.paymentExpiresAt <= new Date()) console.log('REEMBOLSAR'); //TODO: Reembolsar creo que se usa paymentId, el stock se devuelve solo en cronjob
 
       if (ticket!.status !== StatusTicket.PENDING_PAYMENT) return true
 
