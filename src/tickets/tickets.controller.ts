@@ -40,14 +40,11 @@ export class TicketsController {
     return this.ticketsService.myTickets(userId);
   }
 
-  @Get()
-  findAll() {
-    return this.ticketsService.findAll();
-  }
-
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.ticketsService.findOne(+id);
+  @UseGuards(AuthGuard('jwt'))
+  @Get("pending-payment")
+  getPendingPayment(@Req() req) {
+    const userId = req.user.sub;
+    return this.ticketsService.getPendingPayment(userId);
   }
 
   @UseGuards(AuthGuard('jwt'))

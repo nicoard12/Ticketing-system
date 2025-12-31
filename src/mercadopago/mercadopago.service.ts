@@ -34,7 +34,7 @@ export class MercadopagoService {
         ],
         external_reference: ticketId,
         back_urls: {
-          success: `${FRONT_URL}/payment/success`,
+          success: `${FRONT_URL}/${ticketId}/success`,
           failure: `${FRONT_URL}/payment/failure`,
         },
         auto_return: 'approved',

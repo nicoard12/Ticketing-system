@@ -12,6 +12,7 @@ import { StatusTicket, Ticket } from 'src/interfaces/ticket.interface';
 import { Rol, User } from 'src/interfaces/user.interface';
 import { UsersService } from 'src/user/users.service';
 import { EventsService } from 'src/events/events.service';
+import { MercadopagoService } from 'src/mercadopago/mercadopago.service';
 
 import {
   generateQrCode,
@@ -32,6 +33,7 @@ export class TicketsService {
     private readonly connection: typeof mongoose,
     private readonly usersService: UsersService,
     private readonly eventsService: EventsService,
+    private readonly mpService: MercadopagoService,
   ) {}
 
   private async verifyNormalUser(userId: string) {
@@ -62,22 +64,16 @@ export class TicketsService {
         session,
       );
 
-      const {
-        verificationCode,
-        verificationCodeHash,
-        verificationCodeExpiresAt,
-      } = generateVerificationCode();
-
+      const paymentExpiresAt = new Date(Date.now() + 15 * 60 * 1000);
       const [ticket] = await this.ticketModel.create(
         [
           {
             ...createTicketDto,
             userId: user.idAuth,
             purchaserEmail: user.email,
-            status: StatusTicket.PENDING,
+            status: StatusTicket.PENDING_PAYMENT,
+            paymentExpiresAt,
             price: event.precioEntrada,
-            verificationCode: verificationCodeHash,
-            verificationCodeExpiresAt,
           },
         ],
         { session },
@@ -85,20 +81,16 @@ export class TicketsService {
 
       await session.commitTransaction();
 
-      // mail afuera de la transacción
-      sendVerificationCode(user.email, verificationCode).catch((err) =>
-        console.error('Error enviando mail:', err),
+      //Logica mercadopago, si en este punto falla no se puede realizar rollback, 
+      // pero igualmente hay(habrá) un CronJob para borrar tickets pendientes de pago vencidos
+      const { url } = await this.mpService.createPayment(
+        ticket._id.toString(),
+        event.titulo,
+        ticket.quantity,
+        ticket.price,
       );
 
-      return {
-        _id: ticket._id,
-        event,
-        eventDateId: ticket.eventDateId,
-        quantity: ticket.quantity,
-        purchaserEmail: ticket.purchaserEmail,
-        status: ticket.status,
-        price: ticket.price,
-      };
+      return url;
     } catch (error) {
       console.log('Error, ', error);
       await session.abortTransaction();
@@ -107,6 +99,39 @@ export class TicketsService {
         : new InternalServerErrorException('Error creando el ticket');
     } finally {
       await session.endSession();
+    }
+  }
+
+  async confirmPayment(ticketId: string) {
+    try {
+      const ticket = await this.ticketModel.findById(ticketId);
+      if (!ticket) console.log('REEMBOLSAR'); //TODO: Reembolsar
+
+      const {
+        verificationCode,
+        verificationCodeHash,
+        verificationCodeExpiresAt,
+      } = generateVerificationCode();
+
+      ticket!.set({
+        status: StatusTicket.PENDING,
+        verificationCodeHash,
+        verificationCodeExpiresAt,
+      });
+
+      await ticket!.save();
+
+      sendVerificationCode(ticket!.purchaserEmail, verificationCode).catch(
+        (err) => console.error('Error enviando mail:', err),
+      );
+
+      return true; //Respuesta a mercadoPago
+    } catch (error) {
+      console.log('Error confirmando el pago: ', error);
+      if (error instanceof HttpException) throw error;
+      throw new InternalServerErrorException(
+        error.message || 'Error al confirmar el pago',
+      );
     }
   }
 
@@ -429,16 +454,27 @@ export class TicketsService {
     } catch (error) {
       if (error instanceof HttpException) throw error;
       throw new InternalServerErrorException(
-        error.message || 'Error al transferir el ticket',
+        error.message || 'Error al validar el ticket',
       );
     }
   }
 
-  findAll() {
-    return `This action returns all tickets`;
-  }
+  async getPendingPayment(userId: string) {
+    try {
+      const user = await this.verifyNormalUser(userId);
+      const ticketPP = await this.ticketModel.findOne({
+        userId: user._id.toString(),
+        status: StatusTicket.PENDING_PAYMENT,
+        paymentExpiresAt: { $gt: new Date() },
+        payment_url: { $exists: true, $nin: [null, ''] },
+      });
 
-  findOne(id: number) {
-    return `This action returns a #${id} ticket`;
+      return ticketPP;
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      throw new InternalServerErrorException(
+        error.message || 'Error al obtener pago pendiente',
+      );
+    }
   }
 }

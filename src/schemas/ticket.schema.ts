@@ -12,17 +12,10 @@ export const TicketSchema = new mongoose.Schema({
     enum: ['pending_payment', 'pending_verification', 'active', 'used'],
   },
   payment_url: String,
+  paymentExpiresAt: Date,
   price: Number,
   qrCode: String,
   verificationCode: String,
   verificationCodeExpiresAt: Date,
   dateCreated: { type: Date, default: Date.now },
 });
-
-// TicketSchema.pre(/^find/, function (
-//   this: mongoose.Query<any, any>,
-//   next,
-// ) {
-//   this.populate('event');
-//   next();
-// });
