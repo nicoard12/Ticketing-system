@@ -220,15 +220,16 @@ export class EventsService {
       throw new BadRequestException('La fecha del evento ya pasó');
     }
 
-    if (fecha.cantidadEntradas < quantity) {
-      throw new BadRequestException('No hay entradas suficientes');
-    }
-
     // Update atómico
     const updatedEvent = await this.eventModel.findOneAndUpdate(
       {
         _id: eventId,
-        'fechas._id': eventDateId,
+        fechas: {
+          $elemMatch: {
+            _id: eventDateId,
+            cantidadEntradas: { $gte: quantity },
+          },
+        },
       },
       {
         $inc: { 'fechas.$.cantidadEntradas': -quantity },
@@ -237,7 +238,7 @@ export class EventsService {
     );
 
     if (!updatedEvent) {
-      throw new BadRequestException('No se pudieron restar las entradas');
+      throw new BadRequestException('No hay entradas suficientes');
     }
 
     return updatedEvent;
