@@ -104,7 +104,10 @@ export class TicketsService {
 
       await ticket.save()
 
-      return url;
+      return {
+        url,
+        ticketId: ticket._id
+      };
     } catch (error) {
       console.log('Error, ', error);
       await session.abortTransaction();
