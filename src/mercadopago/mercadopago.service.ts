@@ -1,8 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import MercadoPagoConfig, { Preference } from 'mercadopago';
 
-const FRONT_URL= "http://localhost:5173"
-
 @Injectable()
 export class MercadopagoService {
   private preference: Preference;
@@ -33,11 +31,7 @@ export class MercadopagoService {
           },
         ],
         external_reference: ticketId,
-        back_urls: {
-          success: `${FRONT_URL}/${ticketId}/success`,
-          failure: `${FRONT_URL}/payment/failure`,
-        },
-        auto_return: 'approved',
+        notification_url: `${process.env.API_URL}/tickets/confirm-payment`,
       },
     });
 

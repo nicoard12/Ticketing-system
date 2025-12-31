@@ -102,10 +102,10 @@ export class TicketsService {
     }
   }
 
-  async confirmPayment(ticketId: string) {
+  async confirmPayment(ticketId: string, paymentId: number) {
     try {
       const ticket = await this.ticketModel.findById(ticketId);
-      if (!ticket) console.log('REEMBOLSAR'); //TODO: Reembolsar
+      if (!ticket) console.log('REEMBOLSAR'); //TODO: Reembolsar creo que se usa paymentId
 
       const {
         verificationCode,

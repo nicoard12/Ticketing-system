@@ -41,7 +41,7 @@ export class TicketsController {
   }
 
   @UseGuards(AuthGuard('jwt'))
-  @Get("pending-payment")
+  @Get('pending-payment')
   getPendingPayment(@Req() req) {
     const userId = req.user.sub;
     return this.ticketsService.getPendingPayment(userId);
@@ -100,5 +100,12 @@ export class TicketsController {
   validateQR(@Req() req, @Body() validateQRDto: ValidateQRDto) {
     const userId = req.user.sub;
     return this.ticketsService.validateQR(userId, validateQRDto);
+  }
+
+  @Post('confirm-payment')
+  confirmPayment(@Body() body: any) {
+    const ticketId = body.external_reference;
+    const paymentId = body.data.id;
+    return this.ticketsService.confirmPayment(ticketId, paymentId);
   }
 }
