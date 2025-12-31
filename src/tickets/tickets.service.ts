@@ -90,6 +90,12 @@ export class TicketsService {
         ticket.price,
       );
 
+      ticket.set({
+        payment_url: url
+      })
+
+      await ticket.save()
+
       return url;
     } catch (error) {
       console.log('Error, ', error);
@@ -106,6 +112,8 @@ export class TicketsService {
     try {
       const ticket = await this.ticketModel.findById(ticketId);
       if (!ticket) console.log('REEMBOLSAR'); //TODO: Reembolsar creo que se usa paymentId
+
+      if (ticket!.status !== StatusTicket.PENDING_PAYMENT) return true
 
       const {
         verificationCode,
@@ -463,11 +471,13 @@ export class TicketsService {
     try {
       const user = await this.verifyNormalUser(userId);
       const ticketPP = await this.ticketModel.findOne({
-        userId: user._id.toString(),
+        userId: user.idAuth,
         status: StatusTicket.PENDING_PAYMENT,
         paymentExpiresAt: { $gt: new Date() },
         payment_url: { $exists: true, $nin: [null, ''] },
       });
+
+      console.log(ticketPP)
 
       return ticketPP;
     } catch (error) {
