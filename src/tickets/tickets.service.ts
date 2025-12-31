@@ -57,6 +57,14 @@ export class TicketsService {
 
       const user = await this.verifyNormalUser(userId);
 
+      const ticketPP = await this.ticketModel.findOne({
+        userId: user.idAuth,
+        status: StatusTicket.PENDING_PAYMENT,
+        paymentExpiresAt: { $gt: new Date() },
+        payment_url: { $exists: true, $nin: [null, ''] },
+      })
+      if (ticketPP) throw new BadRequestException("Tenes un pago pendiente, cancelalo o terminalo para comprar otro ticket.")
+
       const event = await this.eventsService.restarEntradas(
         createTicketDto.event,
         createTicketDto.eventDateId,
