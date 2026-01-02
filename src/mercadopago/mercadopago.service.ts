@@ -1,10 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { MercadoPagoConfig, Preference, Payment } from 'mercadopago';
+import { MercadoPagoConfig, Preference, Payment, PaymentRefund } from 'mercadopago';
 
 @Injectable()
 export class MercadopagoService {
   private preference: Preference;
   private payment: Payment;
+  private refund: PaymentRefund;
 
   constructor() {
     const client = new MercadoPagoConfig({
@@ -13,6 +14,7 @@ export class MercadopagoService {
 
     this.preference = new Preference(client);
     this.payment = new Payment(client);
+    this.refund = new PaymentRefund(client);
   }
 
   async createPayment(
@@ -52,5 +54,13 @@ export class MercadopagoService {
     });
 
     return payment;
+  }
+
+  async refundPayment(paymentId: string) {
+    const refund = await this.refund.create({
+      payment_id: paymentId,
+    });
+
+    return refund;
   }
 }
