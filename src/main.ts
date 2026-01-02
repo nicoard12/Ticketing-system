@@ -6,9 +6,9 @@ import 'dotenv/config';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  //Habilitar CORS para permitir requests desde el frontend
+  // Habilitar CORS para permitir requests desde el frontend
   // app.enableCors({
-  //   origin: 'https://ticketsys-rose.vercel.app',
+  //   origin: 'https://ticketingsystemprod.vercel.app',
   //   methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
   //   credentials: true,
   // });

@@ -179,7 +179,55 @@ export async function sendQrCode(
   return qrToken;
 }
 
-const HOURS_AGO= 4
+export async function sendTicketRefund( amount: number | undefined, email: string | undefined) {
+  if (!email) return
+  await transporter.sendMail({
+    from: `Ticketing System <${process.env.MAIL_USER}>`,
+    to: email,
+    subject: '🎫 Tu reembolso ha sido procesado',
+    html: `
+      <div style="
+        font-family: 'Helvetica Neue', Arial, sans-serif;
+        background-color: #f2f4f6;
+        padding: 40px 20px;
+      ">
+        <div style="
+          max-width: 500px;
+          margin: auto;
+          background: #ffffff;
+          border-radius: 12px;
+          padding: 30px;
+          text-align: center;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        ">
+          <h1 style="
+            color: #1a73e8;
+            margin-bottom: 16px;
+            font-size: 28px;
+          ">💸 Reembolso procesado</h1>
+
+          <p style="
+            font-size: 16px;
+            color: #555555;
+            line-height: 1.5;
+          ">
+            Hola! Hemos procesado tu reembolso de <strong>$${amount}</strong> debido a que no se pudo completar la compra de tus tickets.
+          </p>
+
+          <p style="
+            font-size: 16px;
+            color: #555555;
+            margin-top: 16px;
+          ">
+            No te preocupes, podés volver a intentar tu compra cuando quieras. ¡Te esperamos para que no te pierdas tu evento favorito!
+          </p>
+        </div>
+      </div>
+    `,
+  });
+}
+
+const HOURS_AGO = 4;
 
 export function isPast(eventDate: Date | string) {
   const now = new Date();
@@ -189,4 +237,3 @@ export function isPast(eventDate: Date | string) {
 
   return event < hoursAgo;
 }
-

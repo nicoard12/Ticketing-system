@@ -20,6 +20,7 @@ import {
   isPast,
   isTheSameCode,
   sendQrCode,
+  sendTicketRefund,
   sendVerificationCode,
 } from './tickets.utils';
 import { TransferTicketDto } from './dto/transfer-ticket.dto';
@@ -141,6 +142,7 @@ export class TicketsService {
           await this.removePendingTicket(ticket.userId, ticket._id.toString());
         }
         await this.mpService.refundPayment(paymentId);
+        sendTicketRefund(payment.transaction_amount, payment.payer?.email)
         this.ticketsGateway.emitTicketUpdate(ticketId!, 'FAILED');
         return true;
       }
