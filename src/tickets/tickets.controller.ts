@@ -108,4 +108,11 @@ export class TicketsController {
     const paymentId = body.data.id;
     return this.ticketsService.confirmPayment(ticketId, paymentId);
   }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Delete('/pending-payment/:id')
+  removePendingTicket(@Req() req, @Param('id') id: string) {
+    const AuthId = req.user.sub;
+    return this.ticketsService.removePendingTicket(AuthId, id );
+  }
 }

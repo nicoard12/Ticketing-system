@@ -62,8 +62,11 @@ export class TicketsService {
         status: StatusTicket.PENDING_PAYMENT,
         paymentExpiresAt: { $gt: new Date() },
         payment_url: { $exists: true, $nin: [null, ''] },
-      })
-      if (ticketPP) throw new BadRequestException("Tenes un pago pendiente, cancelalo o terminalo para comprar otro ticket.")
+      });
+      if (ticketPP)
+        throw new BadRequestException(
+          'Tenes un pago pendiente, cancelalo o terminalo para comprar otro ticket.',
+        );
 
       const event = await this.eventsService.restarEntradas(
         createTicketDto.event,
@@ -89,7 +92,7 @@ export class TicketsService {
 
       await session.commitTransaction();
 
-      //Logica mercadopago, si en este punto falla no se puede realizar rollback, 
+      //Logica mercadopago, si en este punto falla no se puede realizar rollback,
       // pero igualmente hay(habrá) un CronJob para borrar tickets pendientes de pago vencidos
       const { url } = await this.mpService.createPayment(
         ticket._id.toString(),
@@ -99,14 +102,14 @@ export class TicketsService {
       );
 
       ticket.set({
-        payment_url: url
-      })
+        payment_url: url,
+      });
 
-      await ticket.save()
+      await ticket.save();
 
       return {
         url,
-        ticketId: ticket._id
+        ticketId: ticket._id,
       };
     } catch (error) {
       console.log('Error, ', error);
@@ -122,9 +125,10 @@ export class TicketsService {
   async confirmPayment(ticketId: string, paymentId: number) {
     try {
       const ticket = await this.ticketModel.findById(ticketId);
-      if (!ticket || ticket.paymentExpiresAt <= new Date()) console.log('REEMBOLSAR'); //TODO: Reembolsar creo que se usa paymentId, el stock se devuelve solo en cronjob
+      if (!ticket || ticket.paymentExpiresAt <= new Date())
+        console.log('REEMBOLSAR'); //TODO: Reembolsar creo que se usa paymentId, el stock se devuelve solo en cronjob
 
-      if (ticket!.status !== StatusTicket.PENDING_PAYMENT) return true
+      if (ticket!.status !== StatusTicket.PENDING_PAYMENT) return true;
 
       const {
         verificationCode,
@@ -481,18 +485,42 @@ export class TicketsService {
   async getPendingPayment(userId: string) {
     try {
       const user = await this.verifyNormalUser(userId);
-      const ticketPP = await this.ticketModel.findOne({
-        userId: user.idAuth,
-        status: StatusTicket.PENDING_PAYMENT,
-        paymentExpiresAt: { $gt: new Date() },
-        payment_url: { $exists: true, $nin: [null, ''] },
-      }).populate('event');
+      const ticketPP = await this.ticketModel
+        .findOne({
+          userId: user.idAuth,
+          status: StatusTicket.PENDING_PAYMENT,
+          paymentExpiresAt: { $gt: new Date() },
+          payment_url: { $exists: true, $nin: [null, ''] },
+        })
+        .populate('event');
 
-      return ticketPP
+      return ticketPP;
     } catch (error) {
       if (error instanceof HttpException) throw error;
       throw new InternalServerErrorException(
         error.message || 'Error al obtener pago pendiente',
+      );
+    }
+  }
+
+  async removePendingTicket(userId: string, ticketId: string) {
+    try {
+      const user = await this.verifyNormalUser(userId);
+      const ticket = await this.ticketModel.findById(ticketId);
+
+      if (!ticket) throw new BadRequestException('El ticket no existe');
+      if (ticket.userId !== user.idAuth)
+        throw new BadRequestException('El ticket no te pertenece');
+      if (ticket.status !== StatusTicket.PENDING_PAYMENT)
+        throw new BadRequestException('El ticket ya fue pagado');
+
+      await ticket.deleteOne();
+
+      return true;
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      throw new InternalServerErrorException(
+        error.message || 'Error al remover el ticket pendiente',
       );
     }
   }
