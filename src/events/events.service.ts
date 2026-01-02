@@ -208,7 +208,7 @@ export class EventsService {
       throw new NotFoundException('El evento no existe');
     }
 
-    const fecha = event.fechas.find((f) => f._id!.toString() === eventDateId);
+    const fecha = event.fechas.find((f) => f._id!.toString() === eventDateId.toString());
 
     if (!fecha) {
       throw new NotFoundException('Fecha no encontrada');
@@ -242,5 +242,56 @@ export class EventsService {
     }
 
     return updatedEvent;
+  }
+
+  async sumarEntradas(
+    eventId: string,
+    eventDateId: string,
+    quantity: number,
+    session: ClientSession,
+  ): Promise<Event> {
+    const event = await this.eventModel
+      .findOne(
+        {
+          _id: eventId,
+          'fechas._id': eventDateId,
+        },
+        { fechas: 1 },
+      )
+      .session(session);
+
+    if (!event) {
+      throw new NotFoundException('El evento no existe');
+    }
+
+    const fecha = event.fechas.find((f) => f._id!.toString() === eventDateId.toString());
+
+    if (!fecha) {
+      throw new NotFoundException('Fecha no encontrada');
+    }
+
+    const now = new Date();
+
+    if (fecha.fecha < now) {
+      throw new BadRequestException('La fecha del evento ya pasó');
+    }
+
+    // Update atómico
+    const updatedEvent = await this.eventModel.findOneAndUpdate(
+      {
+        _id: eventId,
+        fechas: {
+          $elemMatch: {
+            _id: eventDateId
+          },
+        },
+      },
+      {
+        $inc: { 'fechas.$.cantidadEntradas': quantity },
+      },
+      { new: true, session },
+    );
+
+    return updatedEvent!;
   }
 }

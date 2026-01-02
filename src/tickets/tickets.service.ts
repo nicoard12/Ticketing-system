@@ -150,7 +150,11 @@ export class TicketsService {
 
       await ticket!.save();
 
-      this.ticketsGateway.emitTicketUpdate(ticketId!, 'PAID', ticket!.toObject());
+      this.ticketsGateway.emitTicketUpdate(
+        ticketId!,
+        'PAID',
+        ticket!.toObject(),
+      );
 
       sendVerificationCode(ticket!.purchaserEmail, verificationCode).catch(
         (err) => console.error('Error enviando mail:', err),
@@ -512,9 +516,12 @@ export class TicketsService {
   }
 
   async removePendingTicket(userId: string, ticketId: string) {
+    const session = await this.connection.startSession();
+    session.startTransaction();
+
     try {
       const user = await this.verifyNormalUser(userId);
-      const ticket = await this.ticketModel.findById(ticketId);
+      const ticket = await this.ticketModel.findById(ticketId).session(session);
 
       if (!ticket) throw new BadRequestException('El ticket no existe');
       if (ticket.userId !== user.idAuth)
@@ -522,14 +529,26 @@ export class TicketsService {
       if (ticket.status !== StatusTicket.PENDING_PAYMENT)
         throw new BadRequestException('El ticket ya fue pagado');
 
-      await ticket.deleteOne();
+      await this.eventsService.sumarEntradas(
+        ticket.event,
+        ticket.eventDateId,
+        ticket.quantity,
+        session,
+      );
 
+      await ticket.deleteOne({ session });
+      await session.commitTransaction();
+      
       return true;
     } catch (error) {
+      await session.abortTransaction();
+
       if (error instanceof HttpException) throw error;
       throw new InternalServerErrorException(
         error.message || 'Error al remover el ticket pendiente',
       );
+    } finally {
+      await session.endSession();
     }
   }
 }
