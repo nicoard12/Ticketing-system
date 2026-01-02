@@ -6,10 +6,11 @@ import { UsersModule } from 'src/user/users.module';
 import { EventsModule } from 'src/events/events.module';
 import { ticketsProviders } from './tickets.providers';
 import { MercadopagoModule } from 'src/mercadopago/mercadopago.module';
+import { TicketsGateway } from './tickets.gateway';
 
 @Module({
   imports: [DatabaseModule, UsersModule, EventsModule, MercadopagoModule],
   controllers: [TicketsController],
-  providers: [TicketsService, ...ticketsProviders],
+  providers: [TicketsService, TicketsGateway, ...ticketsProviders],
 })
 export class TicketsModule {}

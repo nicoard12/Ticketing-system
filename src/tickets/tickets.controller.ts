@@ -103,16 +103,17 @@ export class TicketsController {
   }
 
   @Post('confirm-payment')
-  confirmPayment(@Body() body: any) {
-    const ticketId = body.external_reference;
+  async confirmPayment(@Body() body: any) {
+    if (!body?.data?.id) return true;
     const paymentId = body.data.id;
-    return this.ticketsService.confirmPayment(ticketId, paymentId);
+
+    return this.ticketsService.confirmPayment(paymentId);
   }
 
   @UseGuards(AuthGuard('jwt'))
   @Delete('/pending-payment/:id')
   removePendingTicket(@Req() req, @Param('id') id: string) {
     const AuthId = req.user.sub;
-    return this.ticketsService.removePendingTicket(AuthId, id );
+    return this.ticketsService.removePendingTicket(AuthId, id);
   }
 }

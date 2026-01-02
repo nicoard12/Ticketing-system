@@ -24,6 +24,7 @@ import {
 } from './tickets.utils';
 import { TransferTicketDto } from './dto/transfer-ticket.dto';
 import { ValidateQRDto } from './dto/validate-qr.dto';
+import { TicketsGateway } from './tickets.gateway';
 
 @Injectable()
 export class TicketsService {
@@ -34,6 +35,7 @@ export class TicketsService {
     private readonly usersService: UsersService,
     private readonly eventsService: EventsService,
     private readonly mpService: MercadopagoService,
+    private readonly ticketsGateway: TicketsGateway,
   ) {}
 
   private async verifyNormalUser(userId: string) {
@@ -122,13 +124,18 @@ export class TicketsService {
     }
   }
 
-  async confirmPayment(ticketId: string, paymentId: number) {
+  async confirmPayment(paymentId: string) {
     try {
+      const payment = await this.mpService.getPayment(paymentId);
+      console.log("EL PAYMENT: , ", payment)
+      const ticketId = payment.external_reference;
       const ticket = await this.ticketModel.findById(ticketId);
-      if (!ticket || ticket.paymentExpiresAt <= new Date())
-        console.log('REEMBOLSAR'); //TODO: Reembolsar creo que se usa paymentId, el stock se devuelve solo en cronjob
-
       if (ticket!.status !== StatusTicket.PENDING_PAYMENT) return true;
+
+      if (!ticket || ticket.paymentExpiresAt <= new Date()) {
+        //TODO: Reembolsar creo que se usa paymentId y devolver stock
+        this.ticketsGateway.emitTicketUpdate(ticketId!, 'FAILED');
+      }
 
       const {
         verificationCode,
@@ -143,6 +150,8 @@ export class TicketsService {
       });
 
       await ticket!.save();
+
+      this.ticketsGateway.emitTicketUpdate(ticketId!, 'PAID', ticket!.toObject());
 
       sendVerificationCode(ticket!.purchaserEmail, verificationCode).catch(
         (err) => console.error('Error enviando mail:', err),
