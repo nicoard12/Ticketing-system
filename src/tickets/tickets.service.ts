@@ -152,7 +152,6 @@ export class TicketsService {
 
       this.ticketsGateway.emitTicketUpdate(ticketId!, 'PAID', ticket!.toObject());
 
-      console.log("Este es el verification code, ", verificationCode)
       sendVerificationCode(ticket!.purchaserEmail, verificationCode).catch(
         (err) => console.error('Error enviando mail:', err),
       );
