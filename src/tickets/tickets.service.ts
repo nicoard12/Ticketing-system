@@ -129,13 +129,16 @@ export class TicketsService {
       const payment = await this.mpService.getPayment(paymentId);
       const ticketId = payment.external_reference;
       const ticket = await this.ticketModel.findById(ticketId);
-      if (ticket!.status !== StatusTicket.PENDING_PAYMENT) return true;
-
+      
       if (!ticket || ticket.paymentExpiresAt <= new Date()) {
-        //TODO: Reembolsar creo que se usa paymentId y devolver stock
+        //TODO: Reembolsar creo que se usa payment y devolver stock si existe el ticket
+        console.log("Reembolsado")
         this.ticketsGateway.emitTicketUpdate(ticketId!, 'FAILED');
+        return true
       }
-
+      
+      if (ticket.status !== StatusTicket.PENDING_PAYMENT) return true;
+      
       const {
         verificationCode,
         verificationCodeHash,
@@ -538,7 +541,7 @@ export class TicketsService {
 
       await ticket.deleteOne({ session });
       await session.commitTransaction();
-      
+
       return true;
     } catch (error) {
       await session.abortTransaction();
