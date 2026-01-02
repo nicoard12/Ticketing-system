@@ -1,9 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import {
-  MercadoPagoConfig,
-  Preference,
-  Payment,
-} from 'mercadopago';
+import { MercadoPagoConfig, Preference, Payment } from 'mercadopago';
 
 @Injectable()
 export class MercadopagoService {
@@ -24,6 +20,7 @@ export class MercadopagoService {
     ticketTitle: string,
     ticketQuantity: number,
     price: number,
+    paymentExpiresAt: Date,
   ) {
     const response = await this.preference.create({
       body: {
@@ -38,6 +35,9 @@ export class MercadopagoService {
         ],
         external_reference: ticketId,
         notification_url: `${process.env.API_URL}/tickets/confirm-payment`,
+        expires: true,
+        expiration_date_from: new Date().toISOString(),
+        expiration_date_to: paymentExpiresAt.toISOString(),
       },
     });
 

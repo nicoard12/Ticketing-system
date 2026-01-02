@@ -101,6 +101,7 @@ export class TicketsService {
         event.titulo,
         ticket.quantity,
         ticket.price,
+        paymentExpiresAt
       );
 
       ticket.set({
@@ -136,7 +137,7 @@ export class TicketsService {
         this.ticketsGateway.emitTicketUpdate(ticketId!, 'FAILED');
         return true
       }
-      
+
       if (ticket.status !== StatusTicket.PENDING_PAYMENT) return true;
       
       const {
