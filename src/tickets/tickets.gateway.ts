@@ -26,7 +26,6 @@ export class TicketsGateway {
           dateCreated: ticket.dateCreated,
         }
       : null;
-        console.log("DATA A EMITIR EN WS: ,", safeTicket, "  Y STATUS ", status)
     this.server.emit(`ticket-${ticketId}`, { ticket: safeTicket, status });
   }
 }

@@ -127,7 +127,6 @@ export class TicketsService {
   async confirmPayment(paymentId: string) {
     try {
       const payment = await this.mpService.getPayment(paymentId);
-      console.log("EL PAYMENT: , ", payment)
       const ticketId = payment.external_reference;
       const ticket = await this.ticketModel.findById(ticketId);
       if (ticket!.status !== StatusTicket.PENDING_PAYMENT) return true;
@@ -145,7 +144,7 @@ export class TicketsService {
 
       ticket!.set({
         status: StatusTicket.PENDING,
-        verificationCodeHash,
+        verificationCode: verificationCodeHash,
         verificationCodeExpiresAt,
       });
 
@@ -153,6 +152,7 @@ export class TicketsService {
 
       this.ticketsGateway.emitTicketUpdate(ticketId!, 'PAID', ticket!.toObject());
 
+      console.log("Este es el verification code, ", verificationCode)
       sendVerificationCode(ticket!.purchaserEmail, verificationCode).catch(
         (err) => console.error('Error enviando mail:', err),
       );
