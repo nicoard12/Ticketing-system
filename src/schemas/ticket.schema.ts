@@ -19,3 +19,5 @@ export const TicketSchema = new mongoose.Schema({
   verificationCodeExpiresAt: Date,
   dateCreated: { type: Date, default: Date.now },
 });
+
+TicketSchema.index({ status: 1, paymentExpiresAt: 1 });

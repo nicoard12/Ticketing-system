@@ -1,0 +1,1 @@
+export const MAIN_ADMIN_EMAIL = 'nico.ticketingsystem.iaw@gmail.com';

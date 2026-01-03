@@ -7,10 +7,11 @@ import { EventsModule } from 'src/events/events.module';
 import { ticketsProviders } from './tickets.providers';
 import { MercadopagoModule } from 'src/mercadopago/mercadopago.module';
 import { TicketsGateway } from './tickets.gateway';
+import { TicketCleanupService } from './tickets.cleanup-service';
 
 @Module({
   imports: [DatabaseModule, UsersModule, EventsModule, MercadopagoModule],
   controllers: [TicketsController],
-  providers: [TicketsService, TicketsGateway, ...ticketsProviders],
+  providers: [TicketsService, TicketsGateway, TicketCleanupService, ...ticketsProviders],
 })
 export class TicketsModule {}

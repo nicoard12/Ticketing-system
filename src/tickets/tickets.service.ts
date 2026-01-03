@@ -15,9 +15,9 @@ import { EventsService } from 'src/events/events.service';
 import { MercadopagoService } from 'src/mercadopago/mercadopago.service';
 
 import {
+  canValidateQr,
   generateQrCode,
   generateVerificationCode,
-  isPast,
   isTheSameCode,
   sendQrCode,
   sendTicketRefund,
@@ -26,6 +26,7 @@ import {
 import { TransferTicketDto } from './dto/transfer-ticket.dto';
 import { ValidateQRDto } from './dto/validate-qr.dto';
 import { TicketsGateway } from './tickets.gateway';
+import { PAYMENT_EXPIRATION } from './tickets.constants';
 
 @Injectable()
 export class TicketsService {
@@ -46,6 +47,28 @@ export class TicketsService {
       throw new BadRequestException(
         `Solo usuarios normales pueden realizar esta acción.`,
       );
+    return user;
+  }
+
+  private async getValidTransferUser(email: string, userId: string) {
+    const user = await this.usersService.findByEmail(email);
+
+    if (!user)
+      throw new NotFoundException(
+        'El email debe estar ligado a un usuario registrado',
+      );
+
+    if (user.rol !== Rol.NORMAL)
+      throw new BadRequestException(
+        'El usuario no debe tener permisos especiales',
+      );
+
+    if (user.idAuth == userId) {
+      throw new BadRequestException(
+        'No podes transferirte a vos mismo los tickets',
+      );
+    }
+
     return user;
   }
 
@@ -78,7 +101,7 @@ export class TicketsService {
         session,
       );
 
-      const paymentExpiresAt = new Date(Date.now() + 15 * 60 * 1000);
+      const paymentExpiresAt = new Date(Date.now() + PAYMENT_EXPIRATION * 60 * 1000);
       const [ticket] = await this.ticketModel.create(
         [
           {
@@ -96,7 +119,7 @@ export class TicketsService {
       await session.commitTransaction();
 
       //Logica mercadopago, si en este punto falla no se puede realizar rollback,
-      // pero igualmente hay(habrá) un CronJob para borrar tickets pendientes de pago vencidos
+      //pero igualmente hay un Cronjob para borrar tickets pendientes con pagos vencidos
       const { url } = await this.mpService.createPayment(
         ticket._id.toString(),
         event.titulo,
@@ -130,19 +153,20 @@ export class TicketsService {
     try {
       const payment = await this.mpService.getPayment(paymentId);
       if (payment.status !== 'approved') return true;
-      
+
       const ticketId = payment.external_reference;
       if (!ticketId) return true;
 
       const ticket = await this.ticketModel.findById(ticketId);
 
       if (!ticket || ticket.paymentExpiresAt <= new Date()) {
-        //Reembolsar y devolver stock si existe el ticket
+        //Reembolso si no existe el ticket o si expiró el pago
         if (ticket) {
+          //Si expiró el pago elimino el ticket
           await this.removePendingTicket(ticket.userId, ticket._id.toString());
         }
         await this.mpService.refundPayment(paymentId);
-        sendTicketRefund(payment.transaction_amount, payment.payer?.email)
+        sendTicketRefund(payment.transaction_amount, payment.payer?.email);
         this.ticketsGateway.emitTicketUpdate(ticketId!, 'FAILED');
         return true;
       }
@@ -173,7 +197,7 @@ export class TicketsService {
         (err) => console.error('Error enviando mail:', err),
       );
 
-      return true; //Respuesta a mercadoPago
+      return true;
     } catch (error) {
       console.log('Error confirmando el pago: ', error);
       if (error instanceof HttpException) throw error;
@@ -249,7 +273,7 @@ export class TicketsService {
       const updatedTicket = await this.ticketModel.findOneAndUpdate(
         {
           _id: ticketId,
-          userId: user.idAuth, // Validar que el ticket pertenece al usuario autenticado
+          userId: user.idAuth,
           status: StatusTicket.PENDING,
         },
         {
@@ -285,7 +309,7 @@ export class TicketsService {
       const updatedTicket = await this.ticketModel.findOneAndUpdate(
         {
           _id: ticketId,
-          userId: user.idAuth, // Validar que el ticket pertenece al usuario autenticado
+          userId: user.idAuth,
         },
         {
           purchaserEmail: newEmail,
@@ -326,28 +350,6 @@ export class TicketsService {
         error.message || 'Error obteniendo los tickets del usuario',
       );
     }
-  }
-
-  private async getValidTransferUser(email: string, userId: string) {
-    const user = await this.usersService.findByEmail(email);
-
-    if (!user)
-      throw new NotFoundException(
-        'El email debe estar ligado a un usuario registrado',
-      );
-
-    if (user.rol !== Rol.NORMAL)
-      throw new BadRequestException(
-        'El usuario no debe tener permisos especiales',
-      );
-
-    if (user.idAuth == userId) {
-      throw new BadRequestException(
-        'No podes transferirte a vos mismo los tickets',
-      );
-    }
-
-    return user;
   }
 
   async transferTicket(
@@ -480,7 +482,7 @@ export class TicketsService {
       const eventDate = event.fechas.find(
         (f) => f._id?.toString() === eventDateId.toString(),
       )?.fecha;
-      if (isPast(eventDate!))
+      if (!canValidateQr(eventDate!))
         throw new BadRequestException(
           'No podes validar QRs antes de la fecha del evento.',
         );
@@ -536,11 +538,16 @@ export class TicketsService {
       const user = await this.verifyNormalUser(userId);
       const ticket = await this.ticketModel.findById(ticketId).session(session);
 
-      if (!ticket) throw new BadRequestException('El ticket no existe');
+      // El cron ya lo borró, estado final correcto
+      if (!ticket) {
+        await session.abortTransaction();
+        return true;
+      }
+
       if (ticket.userId !== user.idAuth)
         throw new BadRequestException('El ticket no te pertenece');
       if (ticket.status !== StatusTicket.PENDING_PAYMENT)
-        throw new BadRequestException('El ticket ya fue pagado');
+        throw new BadRequestException('El ticket ya no está pendiente de pago');
 
       await this.eventsService.sumarEntradas(
         ticket.event,
@@ -556,7 +563,16 @@ export class TicketsService {
     } catch (error) {
       await session.abortTransaction();
 
+      // El cron ya lo borró, estado final correcto
+      if (
+        error?.errorLabels?.includes('TransientTransactionError') ||
+        error?.code === 112
+      ) {
+        return true;
+      }
+
       if (error instanceof HttpException) throw error;
+
       throw new InternalServerErrorException(
         error.message || 'Error al remover el ticket pendiente',
       );

@@ -4,8 +4,9 @@ import { randomInt, randomUUID } from 'crypto';
 import QRCode from 'qrcode';
 import { Ticket } from 'src/interfaces/ticket.interface';
 import { Event } from 'src/interfaces/event.interface';
+import { QR_VALIDATION_WINDOW_HOURS, VERIFICATION_CODE_EXPIRATION } from './tickets.constants';
 
-const CODE_EXPIRATION = 10; // 10 minutos
+
 
 if (!process.env.MAIL_USER || !process.env.MAIL_PASS) {
   throw new Error('MAIL_USER o MAIL_PASS no configurados');
@@ -64,7 +65,7 @@ export async function sendVerificationCode(
         </div>
 
         <p style="font-size: 14px; color: #888;">
-          Expira en ${CODE_EXPIRATION} minutos
+          Expira en ${VERIFICATION_CODE_EXPIRATION} minutos
         </p>
 
         <hr style="margin: 24px 0; border: none; border-top: 1px solid #eee;" />
@@ -87,7 +88,7 @@ export function generateVerificationCode() {
     .digest('hex');
 
   const verificationCodeExpiresAt = new Date(
-    Date.now() + CODE_EXPIRATION * 60 * 1000,
+    Date.now() + VERIFICATION_CODE_EXPIRATION * 60 * 1000,
   );
 
   return {
@@ -179,8 +180,11 @@ export async function sendQrCode(
   return qrToken;
 }
 
-export async function sendTicketRefund( amount: number | undefined, email: string | undefined) {
-  if (!email) return
+export async function sendTicketRefund(
+  amount: number | undefined,
+  email: string | undefined,
+) {
+  if (!email) return;
   await transporter.sendMail({
     from: `Ticketing System <${process.env.MAIL_USER}>`,
     to: email,
@@ -227,13 +231,14 @@ export async function sendTicketRefund( amount: number | undefined, email: strin
   });
 }
 
-const HOURS_AGO = 4;
-
-export function isPast(eventDate: Date | string) {
+export function canValidateQr(eventDate: Date | string) {
   const now = new Date();
-  const hoursAgo = new Date(now.getTime() - HOURS_AGO * 60 * 60 * 1000);
+
+  const qrValidationCutoffDate = new Date(
+    now.getTime() - QR_VALIDATION_WINDOW_HOURS * 60 * 60 * 1000,
+  );
 
   const event = new Date(eventDate);
 
-  return event < hoursAgo;
+  return event >= qrValidationCutoffDate;
 }

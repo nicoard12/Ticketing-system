@@ -9,8 +9,8 @@ import {
 import { Rol, User } from '../interfaces/user.interface';
 import { CreateUserDto } from './dto/create-user.dto';
 import { ChangeRoleDto } from './dto/change-role.dto';
+import { MAIN_ADMIN_EMAIL } from './users.constants';
 
-const MAIN_ADMIN_EMAIL = 'nico.ticketingsystem.iaw@gmail.com';
 
 @Injectable()
 export class UsersService {
@@ -21,8 +21,8 @@ export class UsersService {
 
   async create(createUsuarioDto: CreateUserDto): Promise<User> {
     let rol: string;
-    if (createUsuarioDto.email == MAIN_ADMIN_EMAIL) rol = 'admin';
-    else rol = 'normal';
+    if (createUsuarioDto.email == MAIN_ADMIN_EMAIL) rol = Rol.ADMIN;
+    else rol = Rol.NORMAL;
     const createdUser = new this.userModel({
       ...createUsuarioDto,
       rol,
