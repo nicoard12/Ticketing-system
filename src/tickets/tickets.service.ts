@@ -139,7 +139,6 @@ export class TicketsService {
         ticketId: ticket._id,
       };
     } catch (error) {
-      console.log('Error, ', error);
       await session.abortTransaction();
       throw error instanceof HttpException
         ? error
@@ -199,7 +198,6 @@ export class TicketsService {
 
       return true;
     } catch (error) {
-      console.log('Error confirmando el pago: ', error);
       if (error instanceof HttpException) throw error;
       throw new InternalServerErrorException(
         error.message || 'Error al confirmar el pago',

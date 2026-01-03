@@ -7,13 +7,13 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   // Habilitar CORS para permitir requests desde el frontend
-  // app.enableCors({
-  //   origin: 'https://ticketingsystemprod.vercel.app',
-  //   methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-  //   credentials: true,
-  // });
+  app.enableCors({
+    origin: `${process.env.FRONT_URL}`,
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    credentials: true,
+  });
 
-  app.enableCors()
+
 
   // Configuración de Swagger (OpenAPI)
   const config = new DocumentBuilder()
