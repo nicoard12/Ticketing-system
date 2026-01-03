@@ -180,7 +180,7 @@ export class TicketsService {
       } = generateVerificationCode();
 
       ticket!.set({
-        status: StatusTicket.PENDING,
+        status: StatusTicket.PENDING_VERIFICATION,
         verificationCode: verificationCodeHash,
         verificationCodeExpiresAt,
       });
@@ -220,7 +220,7 @@ export class TicketsService {
           'El ticket no pertenece al usuario autenticado o no existe.',
         );
       }
-      if (ticket.status !== StatusTicket.PENDING) {
+      if (ticket.status !== StatusTicket.PENDING_VERIFICATION) {
         throw new BadRequestException(
           `Tu email ya fue verificado, encontrarás tu código QR en tu email.`,
         );
@@ -274,7 +274,7 @@ export class TicketsService {
         {
           _id: ticketId,
           userId: user.idAuth,
-          status: StatusTicket.PENDING,
+          status: StatusTicket.PENDING_VERIFICATION,
         },
         {
           verificationCode: verificationCodeHash,
@@ -383,7 +383,7 @@ export class TicketsService {
           $set: {
             originalUserId: user.idAuth,
             userId: transferUser.idAuth,
-            status: StatusTicket.PENDING,
+            status: StatusTicket.PENDING_VERIFICATION,
             purchaserEmail: transferUser.email,
             verificationCode: verificationCodeHash,
             verificationCodeExpiresAt,
@@ -424,7 +424,7 @@ export class TicketsService {
               originalUserId: user.idAuth,
               quantity: transferTicketDto.quantity,
               purchaserEmail: transferUser.email,
-              status: StatusTicket.PENDING,
+              status: StatusTicket.PENDING_VERIFICATION,
               verificationCode: verificationCodeHash,
               verificationCodeExpiresAt,
             },
