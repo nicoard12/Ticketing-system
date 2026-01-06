@@ -8,10 +8,12 @@ import { ticketsProviders } from './tickets.providers';
 import { MercadopagoModule } from 'src/mercadopago/mercadopago.module';
 import { TicketsGateway } from './tickets.gateway';
 import { TicketCleanupService } from './tickets.cleanup-service';
+import { TicketMongoRepository } from './tickets.mongo.repository';
+import { TransactionManager } from 'src/database/database-transaction.manager';
 
 @Module({
   imports: [DatabaseModule, UsersModule, EventsModule, MercadopagoModule],
   controllers: [TicketsController],
-  providers: [TicketsService, TicketsGateway, TicketCleanupService, ...ticketsProviders],
+  providers: [TicketsService, TicketsGateway, TicketCleanupService, TicketMongoRepository, ...ticketsProviders],
 })
 export class TicketsModule {}

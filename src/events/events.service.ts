@@ -1,8 +1,6 @@
-import { ClientSession, Model, Types } from 'mongoose';
 import 'dotenv/config';
 import {
   Injectable,
-  Inject,
   NotFoundException,
   BadRequestException,
   InternalServerErrorException,
@@ -16,13 +14,15 @@ import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { UsersService } from 'src/user/users.service';
 import { Rol } from 'src/interfaces/user.interface';
+import { EventsMongoRepository } from './events.mongo.repository';
+import { ClientSession } from 'mongoose';
 
 @Injectable()
 export class EventsService {
   constructor(
-    @Inject('EVENT_MODEL') private eventModel: Model<Event>,
+    private readonly repository: EventsMongoRepository,
     private readonly usersService: UsersService,
-    private readonly cloudinaryService: CloudinaryService,
+    private readonly imageService: CloudinaryService,
   ) {}
 
   async create(
@@ -42,29 +42,28 @@ export class EventsService {
       const precioEntrada = toNumber(createDto.precioEntrada, 0);
 
       //Verificar titulo repetido
-      const exists = await this.eventModel.findOne({
-        titulo: createDto.titulo,
-      });
+      const exists = await this.repository.findByTitle(createDto.titulo);
       if (exists) {
         throw new BadRequestException(
           `Ya existe un evento con el título "${createDto.titulo}"`,
         );
       }
 
-      const createdEvent = new this.eventModel({
-        ...createDto,
-        fechas: fechasConTickets,
-        precioEntrada,
-        createdBy: AuthId,
-      });
-
       // La imagen se sube una vez que se verificó nombre duplicado de evento, para evitar ocupar espacio innecesario en la nube
+      let imagenUrl: string;
       if (file) {
-        const imagenUrl = await this.cloudinaryService.uploadImage(file);
-        createdEvent.set('imagenUrl', imagenUrl);
+        imagenUrl = await this.imageService.uploadImage(file);
       }
 
-      await createdEvent.save();
+      const createdEvent = await this.repository.create(
+        {
+          ...createDto,
+          precioEntrada,
+          createdBy: AuthId,
+        },
+        fechasConTickets,
+        imagenUrl!,
+      );
 
       return createdEvent;
     } catch (error: any) {
@@ -76,18 +75,21 @@ export class EventsService {
   }
 
   async findAll(): Promise<Event[]> {
-    return this.eventModel.find().exec();
+    return await this.repository.findAll();
   }
 
-  async findOne(id: string): Promise<Event> {
-    if (!Types.ObjectId.isValid(id)) {
-      throw new NotFoundException(`Evento con id ${id} no encontrado`);
+  async findById(id: string): Promise<Event> {
+    try {
+      const event = await this.repository.findById(id);
+      if (!event)
+        throw new NotFoundException(`Evento con id ${id} no encontrado`);
+      return event;
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      throw new InternalServerErrorException(
+        error.message || 'Error creando el evento',
+      );
     }
-
-    const event = await this.eventModel.findById(id).exec();
-    if (!event)
-      throw new NotFoundException(`Evento con id ${id} no encontrado`);
-    return event;
   }
 
   async update(
@@ -103,7 +105,7 @@ export class EventsService {
           'No tenés permiso para modificar este evento.',
         );
 
-      const event = await this.findOne(id);
+      const event = await this.findById(id);
       if (event.createdBy !== authId)
         throw new ForbiddenException(
           'No tenés permiso para modificar este evento.',
@@ -119,9 +121,7 @@ export class EventsService {
 
       //Verificar titulo repetido
       if (updateDto.titulo && updateDto.titulo !== event.titulo) {
-        const existente = await this.eventModel.findOne({
-          titulo: updateDto.titulo,
-        });
+        const existente = await this.repository.findByTitle(updateDto.titulo);
         if (existente) {
           throw new BadRequestException('Ya existe un evento con ese título');
         }
@@ -130,26 +130,20 @@ export class EventsService {
       // Subir nueva imagen, borrar la anterior
       let imagenUrl = event.imagenUrl;
       if (file) {
-        const nuevaImagen = await this.cloudinaryService.uploadImage(file);
+        const nuevaImagen = await this.imageService.uploadImage(file);
         if (imagenUrl) {
-          await this.cloudinaryService.deleteImage(imagenUrl);
+          await this.imageService.deleteImage(imagenUrl);
         }
         imagenUrl = nuevaImagen;
       }
 
-      // Update
-      event.set({
-        titulo: updateDto.titulo ?? event.titulo,
-        descripcion: updateDto.descripcion ?? event.descripcion,
-        ubicacion: updateDto.ubicacion ?? event.ubicacion,
-        fechas: fechasConTickets,
+      return await this.repository.updateEvent(
+        event,
+        updateDto,
+        fechasConTickets,
         precioEntrada,
         imagenUrl,
-      });
-
-      await event.save();
-
-      return event;
+      );
     } catch (error: any) {
       if (error instanceof HttpException) throw error;
       throw new InternalServerErrorException(
@@ -166,7 +160,7 @@ export class EventsService {
       );
     }
 
-    const event = await this.findOne(id);
+    const event = await this.findById(id);
     if (event.createdBy !== authId) {
       throw new ForbiddenException(
         'No tenés permiso para eliminar este evento.',
@@ -176,14 +170,14 @@ export class EventsService {
     // Borrar imagen
     if (event.imagenUrl) {
       try {
-        await this.cloudinaryService.deleteImage(event.imagenUrl);
+        await this.imageService.deleteImage(event.imagenUrl);
       } catch (error) {
         throw new BadRequestException('Error al eliminar la imagen del evento');
       }
     }
 
     // Borrar evento
-    const deletedEvent = await this.eventModel.findByIdAndDelete(id).exec();
+    const deletedEvent = await this.repository.deleteEvent(id);
 
     return deletedEvent!;
   }
@@ -194,21 +188,19 @@ export class EventsService {
     quantity: number,
     session: ClientSession,
   ): Promise<Event> {
-    const event = await this.eventModel
-      .findOne(
-        {
-          _id: eventId,
-          'fechas._id': eventDateId,
-        },
-        { fechas: 1 },
-      )
-      .session(session);
+    const event = await this.repository.findUnaFecha(
+      eventId,
+      eventDateId,
+      session,
+    );
 
     if (!event) {
       throw new NotFoundException('El evento no existe');
     }
 
-    const fecha = event.fechas.find((f) => f._id!.toString() === eventDateId.toString());
+    const fecha = event.fechas.find(
+      (f) => f._id!.toString() === eventDateId.toString(),
+    );
 
     if (!fecha) {
       throw new NotFoundException('Fecha no encontrada');
@@ -221,20 +213,11 @@ export class EventsService {
     }
 
     // Update atómico
-    const updatedEvent = await this.eventModel.findOneAndUpdate(
-      {
-        _id: eventId,
-        fechas: {
-          $elemMatch: {
-            _id: eventDateId,
-            cantidadEntradas: { $gte: quantity },
-          },
-        },
-      },
-      {
-        $inc: { 'fechas.$.cantidadEntradas': -quantity },
-      },
-      { new: true, session },
+    const updatedEvent = await this.repository.decrementTicketsForEventDate(
+      eventId,
+      eventDateId,
+      quantity,
+      session,
     );
 
     if (!updatedEvent) {
@@ -250,21 +233,19 @@ export class EventsService {
     quantity: number,
     session: ClientSession,
   ): Promise<Event> {
-    const event = await this.eventModel
-      .findOne(
-        {
-          _id: eventId,
-          'fechas._id': eventDateId,
-        },
-        { fechas: 1 },
-      )
-      .session(session);
+    const event = await this.repository.findUnaFecha(
+      eventId,
+      eventDateId,
+      session,
+    );
 
     if (!event) {
       throw new NotFoundException('El evento no existe');
     }
 
-    const fecha = event.fechas.find((f) => f._id!.toString() === eventDateId.toString());
+    const fecha = event.fechas.find(
+      (f) => f._id!.toString() === eventDateId.toString(),
+    );
 
     if (!fecha) {
       throw new NotFoundException('Fecha no encontrada');
@@ -276,22 +257,12 @@ export class EventsService {
       throw new BadRequestException('La fecha del evento ya pasó');
     }
 
-    // Update atómico
-    const updatedEvent = await this.eventModel.findOneAndUpdate(
-      {
-        _id: eventId,
-        fechas: {
-          $elemMatch: {
-            _id: eventDateId
-          },
-        },
-      },
-      {
-        $inc: { 'fechas.$.cantidadEntradas': quantity },
-      },
-      { new: true, session },
+    const updatedEvent = await this.repository.incrementTicketsForEventDate(
+      eventId,
+      eventDateId,
+      quantity,
+      session,
     );
-
     return updatedEvent!;
   }
 }
