@@ -65,6 +65,9 @@ export class EventsMongoRepository {
     eventDateId: string,
     session?: ClientSession,
   ): Promise<Event | null> {
+    if (!Types.ObjectId.isValid(eventId)) {
+      return null;
+    }
     return await this.model
       .findOne(
         {
