@@ -1,8 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { MercadoPagoConfig, Preference, Payment, PaymentRefund } from 'mercadopago';
+import { IPayment } from 'src/interfaces/payment.interface';
 
 @Injectable()
-export class MercadopagoService {
+export class MercadopagoService implements IPayment {
   private preference: Preference;
   private payment: Payment;
   private refund: PaymentRefund;
@@ -43,9 +44,7 @@ export class MercadopagoService {
       },
     });
 
-    return {
-      url: response.init_point,
-    };
+    return response.init_point
   }
 
   async getPayment(paymentId: string) {

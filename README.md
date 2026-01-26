@@ -6,7 +6,7 @@
 4. Instalar las dependencias con `npm install`.
 5. Iniciar la aplicación con `npm start`.
 
-> ⚠️ **Requisitos para probar el sistema completo**
+> **Requisitos para probar el sistema completo**
 >
 > Es necesario contar con credenciales propias de:
 > - **Cloudinary**: gestión y subida de imágenes.

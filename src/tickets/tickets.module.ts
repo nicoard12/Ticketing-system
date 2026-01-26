@@ -5,14 +5,14 @@ import { DatabaseModule } from 'src/database/database.module';
 import { UsersModule } from 'src/user/users.module';
 import { EventsModule } from 'src/events/events.module';
 import { ticketsProviders } from './tickets.providers';
-import { MercadopagoModule } from 'src/mercadopago/mercadopago.module';
+import { PaymentModule } from 'src/payments/payments.module';
 import { TicketsGateway } from './tickets.gateway';
 import { TicketCleanupService } from './tickets.cleanup-service';
 import { TicketMongoRepository } from './tickets.mongo.repository';
 import { EmailModule } from 'src/email/email.module';
 
 @Module({
-  imports: [DatabaseModule, UsersModule, EventsModule, MercadopagoModule, EmailModule],
+  imports: [DatabaseModule, UsersModule, EventsModule, PaymentModule, EmailModule],
   controllers: [TicketsController],
   providers: [TicketsService, TicketsGateway, TicketCleanupService, TicketMongoRepository, ...ticketsProviders],
 })

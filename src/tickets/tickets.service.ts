@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   HttpException,
+  Inject,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
@@ -10,7 +11,7 @@ import { StatusTicket, Ticket } from 'src/interfaces/ticket.interface';
 import { Rol, User } from 'src/interfaces/user.interface';
 import { UsersService } from 'src/user/users.service';
 import { EventsService } from 'src/events/events.service';
-import { MercadopagoService } from 'src/mercadopago/mercadopago.service';
+import { MercadopagoService } from 'src/payments/mercadopago.service';
 
 import {
   canValidateQr,
@@ -27,6 +28,7 @@ import { TicketMongoRepository } from './tickets.mongo.repository';
 import { TransactionManager } from 'src/database/database-transaction.manager';
 import { Event } from 'src/interfaces/event.interface';
 import { EmailService } from 'src/email/email.service';
+import { type IPayment } from 'src/interfaces/payment.interface';
 
 @Injectable()
 export class TicketsService {
@@ -36,7 +38,8 @@ export class TicketsService {
     private readonly usersService: UsersService,
     private readonly eventsService: EventsService,
     private readonly emailsService: EmailService,
-    private readonly paymentService: MercadopagoService,
+    @Inject("PAYMENT_PROVIDER")
+    private readonly paymentService: IPayment,
     private readonly ticketsGateway: TicketsGateway,
   ) {}
 
@@ -108,7 +111,7 @@ export class TicketsService {
       );
     });
 
-    const { url } = await this.paymentService.createPayment(
+    const url  = await this.paymentService.createPayment(
       //Puede fallar en este punto, no hay rollback pero el cronjob se encarga de limpiar el ticket creado y restockear entradas
       ticket!._id.toString(),
       event!.titulo,
