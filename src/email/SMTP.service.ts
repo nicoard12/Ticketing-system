@@ -4,9 +4,10 @@ import SMTPTransport from 'nodemailer/lib/smtp-transport';
 import { VERIFICATION_CODE_EXPIRATION } from '../tickets/tickets.constants';
 import { Ticket } from 'src/interfaces/ticket.interface';
 import { Event } from 'src/interfaces/event.interface';
+import { IEmail } from 'src/interfaces/email.interface';
 
 @Injectable()
-export class EmailService {
+export class SMTPService implements IEmail{
   private transporter: nodemailer.Transporter<
     SMTPTransport.SentMessageInfo,
     SMTPTransport.Options

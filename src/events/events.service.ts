@@ -9,7 +9,7 @@ import {
   Inject,
 } from '@nestjs/common';
 import { Event } from '../interfaces/event.interface';
-import { CloudinaryService } from '../cloudinary/cloudinary.service';
+import { CloudinaryService } from '../file-storage/cloudinary.service';
 import { parseFechas, toNumber } from './events.utils';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
@@ -17,14 +17,16 @@ import { UsersService } from 'src/user/users.service';
 import { Rol } from 'src/interfaces/user.interface';
 import { ClientSession } from 'mongoose';
 import { type IEventRepository } from 'src/interfaces/event-repository.interface';
+import { type IFileStorage } from 'src/interfaces/file-storage.interaface';
 
 @Injectable()
 export class EventsService {
   constructor(
-    @Inject("EVENT_REPOSITORY")
+    @Inject('EVENT_REPOSITORY')
     private readonly repository: IEventRepository,
+    @Inject('FILESTORAGE_PROVIDER')
+    private readonly imageService: IFileStorage,
     private readonly usersService: UsersService,
-    private readonly imageService: CloudinaryService,
   ) {}
 
   async create(

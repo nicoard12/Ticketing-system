@@ -11,8 +11,6 @@ import { StatusTicket, Ticket } from 'src/interfaces/ticket.interface';
 import { Rol, User } from 'src/interfaces/user.interface';
 import { UsersService } from 'src/user/users.service';
 import { EventsService } from 'src/events/events.service';
-import { MercadopagoService } from 'src/payments/mercadopago.service';
-
 import {
   canValidateQr,
   generateQrCode,
@@ -26,20 +24,21 @@ import { TicketsGateway } from './tickets.gateway';
 import { PAYMENT_EXPIRATION } from './tickets.constants';
 import { TransactionManager } from 'src/database/database-transaction.manager';
 import { Event } from 'src/interfaces/event.interface';
-import { EmailService } from 'src/email/email.service';
 import { type IPayment } from 'src/interfaces/payment.interface';
 import { type ITicketRepository } from 'src/interfaces/ticket-repository.interface';
+import { type IEmail } from 'src/interfaces/email.interface';
 
 @Injectable()
 export class TicketsService {
   constructor(
     private readonly usersService: UsersService,
     private readonly eventsService: EventsService,
-    private readonly emailsService: EmailService,
-    @Inject("TICKET_REPOSITORY")
-    private readonly ticketRepository: ITicketRepository,
-    @Inject("PAYMENT_PROVIDER")
+    @Inject('EMAIL_PROVIDER')
+    private readonly emailsService: IEmail,
+    @Inject('PAYMENT_PROVIDER')
     private readonly paymentService: IPayment,
+    @Inject('TICKET_REPOSITORY')
+    private readonly ticketRepository: ITicketRepository,
     private readonly transactionManager: TransactionManager,
     private readonly ticketsGateway: TicketsGateway,
   ) {}
@@ -112,7 +111,7 @@ export class TicketsService {
       );
     });
 
-    const url  = await this.paymentService.createPayment(
+    const url = await this.paymentService.createPayment(
       //Puede fallar en este punto, no hay rollback pero el cronjob se encarga de limpiar el ticket creado y restockear entradas
       ticket!._id.toString(),
       event!.titulo,
@@ -215,11 +214,9 @@ export class TicketsService {
 
       const qrID = generateQrID();
       const event = await this.eventsService.findById(ticket.event);
-      this.emailsService.sendQrCode(await generateQrCode(qrID), ticket, event).catch(
-        (
-          err, 
-        ) => console.error('Error enviando mail:', err),
-      );
+      this.emailsService
+        .sendQrCode(await generateQrCode(qrID), ticket, event)
+        .catch((err) => console.error('Error enviando mail:', err));
 
       ticket.set({ status: StatusTicket.ACTIVE });
       ticket.set({ qrID });
