@@ -1,16 +1,16 @@
-import {
-  Injectable,
-  BadRequestException,
-} from '@nestjs/common';
+import { Injectable, BadRequestException, Inject } from '@nestjs/common';
 import { Rol, User } from '../interfaces/user.interface';
 import { CreateUserDto } from './dto/create-user.dto';
 import { ChangeRoleDto } from './dto/change-role.dto';
 import { MAIN_ADMIN_EMAIL } from './users.constants';
-import { UserMongoRepository } from './user.mongo.repository';
+import { type IUserRepository } from 'src/interfaces/user-repository.interface';
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly userRepository: UserMongoRepository) {}
+  constructor(
+    @Inject('USER_REPOSITORY')
+    private readonly userRepository: IUserRepository,
+  ) {}
 
   async create(createUsuarioDto: CreateUserDto): Promise<User> {
     const rol =

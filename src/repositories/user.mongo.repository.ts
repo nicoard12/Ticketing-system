@@ -1,9 +1,10 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { Model } from "mongoose";
+import { IUserRepository } from "src/interfaces/user-repository.interface";
 import { User } from "src/interfaces/user.interface";
 
 @Injectable()
-export class UserMongoRepository {
+export class UserMongoRepository implements IUserRepository {
   constructor(
     @Inject('USER_MODEL')
     private readonly userModel: Model<User>,
