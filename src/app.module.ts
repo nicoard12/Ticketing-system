@@ -7,9 +7,10 @@ import { AuthzModule } from './authz/authz.module';
 import { TicketsModule } from './tickets/tickets.module';
 import { MercadopagoModule } from './mercadopago/mercadopago.module';
 import { ScheduleModule } from '@nestjs/schedule';
+import { EmailModule } from './email/email.module';
 
 @Module({
-  imports: [EventsModule, UsersModule, AuthzModule, TicketsModule, MercadopagoModule, ScheduleModule.forRoot()],
+  imports: [EventsModule, UsersModule, AuthzModule, TicketsModule, MercadopagoModule, ScheduleModule.forRoot(), EmailModule],
   controllers: [AppController],
   providers: [AppService],
 })

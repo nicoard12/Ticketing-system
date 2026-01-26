@@ -9,10 +9,10 @@ import { MercadopagoModule } from 'src/mercadopago/mercadopago.module';
 import { TicketsGateway } from './tickets.gateway';
 import { TicketCleanupService } from './tickets.cleanup-service';
 import { TicketMongoRepository } from './tickets.mongo.repository';
-import { TransactionManager } from 'src/database/database-transaction.manager';
+import { EmailModule } from 'src/email/email.module';
 
 @Module({
-  imports: [DatabaseModule, UsersModule, EventsModule, MercadopagoModule],
+  imports: [DatabaseModule, UsersModule, EventsModule, MercadopagoModule, EmailModule],
   controllers: [TicketsController],
   providers: [TicketsService, TicketsGateway, TicketCleanupService, TicketMongoRepository, ...ticketsProviders],
 })

@@ -15,11 +15,9 @@ import { MercadopagoService } from 'src/mercadopago/mercadopago.service';
 import {
   canValidateQr,
   generateQrCode,
+  generateQrID,
   generateVerificationCode,
   isTheSameCode,
-  sendQrCode,
-  sendTicketRefund,
-  sendVerificationCode,
 } from './tickets.utils';
 import { TransferTicketDto } from './dto/transfer-ticket.dto';
 import { ValidateQRDto } from './dto/validate-qr.dto';
@@ -28,6 +26,7 @@ import { PAYMENT_EXPIRATION } from './tickets.constants';
 import { TicketMongoRepository } from './tickets.mongo.repository';
 import { TransactionManager } from 'src/database/database-transaction.manager';
 import { Event } from 'src/interfaces/event.interface';
+import { EmailService } from 'src/email/email.service';
 
 @Injectable()
 export class TicketsService {
@@ -36,6 +35,7 @@ export class TicketsService {
     private readonly ticketRepository: TicketMongoRepository,
     private readonly usersService: UsersService,
     private readonly eventsService: EventsService,
+    private readonly emailsService: EmailService,
     private readonly paymentService: MercadopagoService,
     private readonly ticketsGateway: TicketsGateway,
   ) {}
@@ -142,7 +142,10 @@ export class TicketsService {
           await this.removePendingTicket(ticket.userId, ticket._id.toString());
         }
         await this.paymentService.refundPayment(paymentId);
-        sendTicketRefund(payment.transaction_amount, payment.payer?.email);
+        this.emailsService.sendTicketRefund(
+          payment.transaction_amount,
+          payment.payer?.email,
+        );
         this.ticketsGateway.emitTicketUpdate(ticketId!, 'FAILED');
         return true;
       }
@@ -167,9 +170,9 @@ export class TicketsService {
         ticket!.toObject(),
       );
 
-      sendVerificationCode(ticket!.purchaserEmail, verificationCode).catch(
-        (err) => console.error('Error enviando mail:', err),
-      );
+      this.emailsService
+        .sendVerificationCode(ticket!.purchaserEmail, verificationCode)
+        .catch((err) => console.error('Error enviando mail:', err));
 
       return true;
     } catch (error) {
@@ -206,19 +209,18 @@ export class TicketsService {
         throw new BadRequestException('Código de verificación incorrecto.');
       }
 
-      ticket.set({ status: StatusTicket.ACTIVE });
-
-      const qrCode = generateQrCode();
-      ticket.set({ qrCode });
-
-      await ticket.save();
-
+      const qrID = generateQrID();
       const event = await this.eventsService.findById(ticket.event);
-      sendQrCode(qrCode, ticket, event).catch(
+      this.emailsService.sendQrCode(await generateQrCode(qrID), ticket, event).catch(
         (
-          err, //sin await para no bloquear el flujo y dar una mejor experiencia al usuario
+          err, 
         ) => console.error('Error enviando mail:', err),
       );
+
+      ticket.set({ status: StatusTicket.ACTIVE });
+      ticket.set({ qrID });
+
+      await ticket.save();
 
       return true;
     } catch (error) {
@@ -256,10 +258,9 @@ export class TicketsService {
         );
       }
 
-      sendVerificationCode(
-        updatedTicket.purchaserEmail,
-        verificationCode,
-      ).catch((err) => console.error('Error enviando mail:', err));
+      this.emailsService
+        .sendVerificationCode(updatedTicket.purchaserEmail, verificationCode)
+        .catch((err) => console.error('Error enviando mail:', err));
 
       return true;
     } catch (error: any) {
@@ -369,9 +370,9 @@ export class TicketsService {
       }
     });
 
-    sendVerificationCode(transferTicketDto.email, verificationCode!).catch(
-      (err) => console.error('Error enviando mail:', err),
-    );
+    this.emailsService
+      .sendVerificationCode(transferTicketDto.email, verificationCode!)
+      .catch((err) => console.error('Error enviando mail:', err));
 
     return true;
   }
