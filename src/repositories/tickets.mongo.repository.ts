@@ -2,11 +2,11 @@ import { Inject, Injectable } from '@nestjs/common';
 import { ClientSession, Model } from 'mongoose';
 import { StatusTicket, Ticket } from 'src/interfaces/ticket.interface';
 import { User } from 'src/interfaces/user.interface';
-import { CreateTicketDto } from './dto/create-ticket.dto';
-import { PAYMENT_EXPIRATION } from './tickets.constants';
+import { CreateTicketDto } from '../tickets/dto/create-ticket.dto';
+import { ITicketRepository } from 'src/interfaces/ticket-repository.interface';
 
 @Injectable()
-export class TicketMongoRepository {
+export class TicketMongoRepository implements ITicketRepository{
   constructor(
     @Inject('TICKET_MODEL')
     private readonly ticketModel: Model<Ticket>,
@@ -98,7 +98,7 @@ export class TicketMongoRepository {
   async updateToPendingVerification(
     ticket: Ticket,
     verificationCodeHash: string,
-    verificationCodeExpiresAt,
+    verificationCodeExpiresAt: Date,
   ) {
     ticket!.set({
       status: StatusTicket.PENDING_VERIFICATION,

@@ -24,22 +24,23 @@ import { TransferTicketDto } from './dto/transfer-ticket.dto';
 import { ValidateQRDto } from './dto/validate-qr.dto';
 import { TicketsGateway } from './tickets.gateway';
 import { PAYMENT_EXPIRATION } from './tickets.constants';
-import { TicketMongoRepository } from './tickets.mongo.repository';
 import { TransactionManager } from 'src/database/database-transaction.manager';
 import { Event } from 'src/interfaces/event.interface';
 import { EmailService } from 'src/email/email.service';
 import { type IPayment } from 'src/interfaces/payment.interface';
+import { type ITicketRepository } from 'src/interfaces/ticket-repository.interface';
 
 @Injectable()
 export class TicketsService {
   constructor(
-    private readonly transactionManager: TransactionManager,
-    private readonly ticketRepository: TicketMongoRepository,
     private readonly usersService: UsersService,
     private readonly eventsService: EventsService,
     private readonly emailsService: EmailService,
+    @Inject("TICKET_REPOSITORY")
+    private readonly ticketRepository: ITicketRepository,
     @Inject("PAYMENT_PROVIDER")
     private readonly paymentService: IPayment,
+    private readonly transactionManager: TransactionManager,
     private readonly ticketsGateway: TicketsGateway,
   ) {}
 

@@ -1,16 +1,17 @@
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { StatusTicket } from 'src/interfaces/ticket.interface';
 import { EventsService } from 'src/events/events.service';
-import { TicketMongoRepository } from './tickets.mongo.repository';
 import { TransactionManager } from 'src/database/database-transaction.manager';
+import { type ITicketRepository } from 'src/interfaces/ticket-repository.interface';
 
 @Injectable()
 export class TicketCleanupService {
   private readonly logger = new Logger(TicketCleanupService.name);
 
   constructor(
-    private readonly ticketRepository: TicketMongoRepository,
+    @Inject('TICKET_REPOSITORY')
+    private readonly ticketRepository: ITicketRepository,
     private readonly transactionManager: TransactionManager,
     private readonly eventsService: EventsService,
   ) {}
