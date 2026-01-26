@@ -1,11 +1,12 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ClientSession, Model, Types } from 'mongoose';
 import { Event, EventDate } from 'src/interfaces/event.interface';
-import { CreateEventDto } from './dto/create-event.dto';
-import { UpdateEventDto } from './dto/update-event.dto';
+import { CreateEventDto } from '../events/dto/create-event.dto';
+import { UpdateEventDto } from '../events/dto/update-event.dto';
+import { IEventRepository } from 'src/interfaces/event-repository.interface';
 
 @Injectable()
-export class EventsMongoRepository {
+export class EventsMongoRepository implements IEventRepository {
   constructor(@Inject('EVENT_MODEL') private readonly model: Model<Event>) {}
 
   async create(

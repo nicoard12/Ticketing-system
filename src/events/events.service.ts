@@ -6,6 +6,7 @@ import {
   InternalServerErrorException,
   ForbiddenException,
   HttpException,
+  Inject,
 } from '@nestjs/common';
 import { Event } from '../interfaces/event.interface';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
@@ -14,13 +15,14 @@ import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { UsersService } from 'src/user/users.service';
 import { Rol } from 'src/interfaces/user.interface';
-import { EventsMongoRepository } from './events.mongo.repository';
 import { ClientSession } from 'mongoose';
+import { type IEventRepository } from 'src/interfaces/event-repository.interface';
 
 @Injectable()
 export class EventsService {
   constructor(
-    private readonly repository: EventsMongoRepository,
+    @Inject("EVENT_REPOSITORY")
+    private readonly repository: IEventRepository,
     private readonly usersService: UsersService,
     private readonly imageService: CloudinaryService,
   ) {}
