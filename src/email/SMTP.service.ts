@@ -2,9 +2,9 @@ import { Injectable } from '@nestjs/common';
 import nodemailer from 'nodemailer';
 import SMTPTransport from 'nodemailer/lib/smtp-transport';
 import { VERIFICATION_CODE_EXPIRATION } from '../tickets/tickets.constants';
-import { Ticket } from 'src/interfaces/ticket.interface';
-import { Event } from 'src/interfaces/event.interface';
-import { IEmail } from 'src/interfaces/email.interface';
+import { Ticket } from 'src/tickets/interfaces/ticket.interface';
+import { Event } from 'src/events/interfaces/event.interface';
+import { IEmail } from 'src/email/email.interface';
 
 @Injectable()
 export class SMTPService implements IEmail{

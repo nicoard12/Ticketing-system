@@ -1,6 +1,6 @@
 import { WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
 import { Server } from 'socket.io';
-import { Ticket } from 'src/interfaces/ticket.interface';
+import { Ticket } from 'src/tickets/interfaces/ticket.interface';
 
 @WebSocketGateway({
   cors: {

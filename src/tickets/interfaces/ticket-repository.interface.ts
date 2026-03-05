@@ -1,6 +1,6 @@
 import { CreateTicketDto } from "src/tickets/dto/create-ticket.dto";
 import { Ticket } from "./ticket.interface";
-import { User } from "./user.interface";
+import { User } from "src/user/interfaces/user.interface";
 
 export interface ITicketRepository {
   createTicket(

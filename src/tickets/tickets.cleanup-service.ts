@@ -1,9 +1,9 @@
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { StatusTicket } from 'src/interfaces/ticket.interface';
+import { StatusTicket } from 'src/tickets/interfaces/ticket.interface';
 import { EventsService } from 'src/events/events.service';
 import { TransactionManager } from 'src/database/database-transaction.manager';
-import { type ITicketRepository } from 'src/interfaces/ticket-repository.interface';
+import { type ITicketRepository } from 'src/tickets/interfaces/ticket-repository.interface';
 
 @Injectable()
 export class TicketCleanupService {

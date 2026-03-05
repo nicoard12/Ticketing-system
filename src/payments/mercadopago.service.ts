@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { MercadoPagoConfig, Preference, Payment, PaymentRefund } from 'mercadopago';
-import { IPayment } from 'src/interfaces/payment.interface';
+import { IPayment } from 'src/payments/payment.interface';
 
 @Injectable()
 export class MercadopagoService implements IPayment {

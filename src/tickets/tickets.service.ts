@@ -7,8 +7,8 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { CreateTicketDto } from './dto/create-ticket.dto';
-import { StatusTicket, Ticket } from 'src/interfaces/ticket.interface';
-import { Rol, User } from 'src/interfaces/user.interface';
+import { StatusTicket, Ticket } from 'src/tickets/interfaces/ticket.interface';
+import { Rol, User } from 'src/user/interfaces/user.interface';
 import { UsersService } from 'src/user/users.service';
 import { EventsService } from 'src/events/events.service';
 import {
@@ -23,10 +23,10 @@ import { ValidateQRDto } from './dto/validate-qr.dto';
 import { TicketsGateway } from './tickets.gateway';
 import { PAYMENT_EXPIRATION } from './tickets.constants';
 import { TransactionManager } from 'src/database/database-transaction.manager';
-import { Event } from 'src/interfaces/event.interface';
-import { type IPayment } from 'src/interfaces/payment.interface';
-import { type ITicketRepository } from 'src/interfaces/ticket-repository.interface';
-import { type IEmail } from 'src/interfaces/email.interface';
+import { Event } from 'src/events/interfaces/event.interface';
+import { type IPayment } from 'src/payments/payment.interface';
+import { type ITicketRepository } from 'src/tickets/interfaces/ticket-repository.interface';
+import { type IEmail } from 'src/email/email.interface';
 
 @Injectable()
 export class TicketsService {

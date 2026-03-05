@@ -8,10 +8,9 @@ import { TicketsModule } from './tickets/tickets.module';
 import { PaymentModule } from './payments/payments.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { EmailModule } from './email/email.module';
-import { RepositoriesModule } from './repositories/repositories.module';
 
 @Module({
-  imports: [EventsModule, UsersModule, AuthzModule, TicketsModule, PaymentModule, ScheduleModule.forRoot(), EmailModule, RepositoriesModule],
+  imports: [EventsModule, UsersModule, AuthzModule, TicketsModule, PaymentModule, ScheduleModule.forRoot(), EmailModule],
   controllers: [AppController],
   providers: [AppService],
 })

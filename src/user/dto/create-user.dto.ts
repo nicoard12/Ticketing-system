@@ -1,5 +1,5 @@
 import { IsEmail, IsEnum, IsNotEmpty, IsString } from 'class-validator';
-import { Rol } from 'src/interfaces/user.interface';
+import { Rol } from 'src/user/interfaces/user.interface';
 
 
 export class CreateUserDto {

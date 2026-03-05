@@ -1,9 +1,9 @@
 import { Injectable, BadRequestException, Inject } from '@nestjs/common';
-import { Rol, User } from '../interfaces/user.interface';
+import { Rol, User } from 'src/user/interfaces/user.interface';
 import { CreateUserDto } from './dto/create-user.dto';
 import { ChangeRoleDto } from './dto/change-role.dto';
 import { MAIN_ADMIN_EMAIL } from './users.constants';
-import { type IUserRepository } from 'src/interfaces/user-repository.interface';
+import { type IUserRepository } from 'src/user/interfaces/user-repository.interface';
 
 @Injectable()
 export class UsersService {

@@ -8,16 +8,16 @@ import {
   HttpException,
   Inject,
 } from '@nestjs/common';
-import { Event } from '../interfaces/event.interface';
+import { Event } from './interfaces/event.interface';
 import { CloudinaryService } from '../file-storage/cloudinary.service';
 import { parseFechas, toNumber } from './events.utils';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { UsersService } from 'src/user/users.service';
-import { Rol } from 'src/interfaces/user.interface';
+import { Rol } from 'src/user/interfaces/user.interface';
 import { ClientSession } from 'mongoose';
-import { type IEventRepository } from 'src/interfaces/event-repository.interface';
-import { type IFileStorage } from 'src/interfaces/file-storage.interaface';
+import { type IEventRepository } from 'src/events/interfaces/event-repository.interface';
+import { type IFileStorage } from 'src/file-storage/file-storage.interaface';
 
 @Injectable()
 export class EventsService {

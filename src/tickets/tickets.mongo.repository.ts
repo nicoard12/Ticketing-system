@@ -1,9 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ClientSession, Model } from 'mongoose';
-import { StatusTicket, Ticket } from 'src/interfaces/ticket.interface';
-import { User } from 'src/interfaces/user.interface';
-import { CreateTicketDto } from '../tickets/dto/create-ticket.dto';
-import { ITicketRepository } from 'src/interfaces/ticket-repository.interface';
+import { StatusTicket, Ticket } from 'src/tickets/interfaces/ticket.interface';
+import { User } from 'src/user/interfaces/user.interface';
+import { CreateTicketDto } from './dto/create-ticket.dto';
+import { ITicketRepository } from 'src/tickets/interfaces/ticket-repository.interface';
 
 @Injectable()
 export class TicketMongoRepository implements ITicketRepository{

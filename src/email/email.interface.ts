@@ -1,5 +1,5 @@
-import { Event } from './event.interface';
-import { Ticket } from './ticket.interface';
+import { Event } from '../events/interfaces/event.interface';
+import { Ticket } from '../tickets/interfaces/ticket.interface';
 
 export interface IEmail {
   sendVerificationCode(email: string, verificationCode: string): Promise<void>;

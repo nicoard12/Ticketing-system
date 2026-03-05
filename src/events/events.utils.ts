@@ -1,5 +1,5 @@
 import { BadRequestException } from '@nestjs/common';
-import { EventDate } from 'src/interfaces/event.interface';
+import { EventDate } from 'src/events/interfaces/event.interface';
 
 export function parseFechas(fechas: string): EventDate[] {
   let parsed: EventDate[];
